@@ -1,12 +1,16 @@
 {
-    "name": "digitaladditive/exacttarget-laravel",
-    "description": "The best way to talk to Exact Target with Hypertext PreProcessor",
+    "name": "ariad/exacttarget-laravel",
+    "description": "Ariad customization to The best way to talk to Exact Target with Hypertext PreProcessor",
     "license": "MIT",
-    "keywords": ["exacttarget-laravel"],
+    "keywords": ["ariad-exacttarget-laravel"],
     "authors": [
         {
             "name": "Patrick Bennett",
             "email": "patrick.bennett@digitaladditive.com"
+        },
+        {
+            "name": "Julio Rodriguez",
+            "email": "jrodriguez@ariad.ca"
         }
     ],
     "require": {
@@ -20,7 +24,7 @@
     },
     "autoload": {
         "psr-4": {
-            "digitaladditive\\exacttargetlaravel\\": "src"
+            "ariad\\exacttargetlaravel\\": "src"
         }
     }
 }

@@ -1,6 +1,6 @@
 <?php
  
-use digitaladditive\exacttargetlaravel\LaravelEtApi;
+use ariad\exacttargetlaravel\LaravelEtApi;
  
 class EtApiTest extends PHPUnit_Framework_TestCase {
  

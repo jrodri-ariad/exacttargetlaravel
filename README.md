@@ -1,6 +1,5 @@
 # API for Exact Target for use in Laravel and Other PHP MVC frameworks
 
-[![Build Status](https://travis-ci.org/JeffreyWay/Laravel-4-Generators.png?branch=master)](https://travis-ci.org/digitaladditive/exacttargetlaravel)
 
 This Laravel package provides a series of methods for clean and easy interaction with the burdgeoning Exact Target REST API as well as methods for use with Fuel SDK
 
@@ -173,6 +172,19 @@ Now just write a use statement at the top of your Laravel project like so:
 ## Usage
 
 A few usage examples
+
+On your Controller add something like this:
+
+```php
+<?php
+
+public function etConnect(){
+        return \App::make('ariad\exacttargetlaravel\LaravelEtApi');
+    }
+    
+```
+
+Then use it as follows
 
 ```php
 

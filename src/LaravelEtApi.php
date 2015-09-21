@@ -1,4 +1,4 @@
-<?php namespace digitaladditive\exacttargetlaravel;
+<?php namespace ariad\exacttargetlaravel;
 
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Client;
