@@ -145,7 +145,7 @@ This build includes one implementation for Laravel.
 ## Installation
 
 
-Begin by installing this package through Composer. Edit your project's `composer.json` file to require `ariad/exacttargetlaravel`. Or just run composer require digitaladditive/exacttargetlaravel
+Begin by installing this package through Composer. Edit your project's `composer.json` file to require `ariad/exacttargetlaravel`. Or just run composer require ariad/exacttargetlaravel
 
 
 	"require-dev": {
