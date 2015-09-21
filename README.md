@@ -145,11 +145,11 @@ This build includes one implementation for Laravel.
 ## Installation
 
 
-Begin by installing this package through Composer. Edit your project's `composer.json` file to require `digitaladditive/exacttargetlaravel`. Or just run composer require digitaladditive/exacttargetlaravel
+Begin by installing this package through Composer. Edit your project's `composer.json` file to require `ariad/exacttargetlaravel`. Or just run composer require digitaladditive/exacttargetlaravel
 
 
 	"require-dev": {
-		"digitaladditive/exacttargetlaravel": "~0.1"
+		"ariad/exacttargetlaravel": "~0.1"
 	}
 
 
@@ -166,7 +166,7 @@ I know this is a bit of a pain in terms of configuration. As soon as the Exact T
 
 Now just write a use statement at the top of your Laravel project like so:
 
-	use digitaladditive\exacttargetlaravel\LaravelEtApi;
+	use ariad\exacttargetlaravel\LaravelEtApi;
 
 
 ## Usage
