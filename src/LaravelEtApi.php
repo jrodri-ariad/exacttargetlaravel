@@ -2,10 +2,12 @@
 
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Log;
 use Psr\Http\Message\ResponseInterface;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use ET_Client;
+use ET_GET;
 use ET_DataExtension;
 use ET_DataExtension_Row;
 use ET_DataExtension_Column;
@@ -60,6 +62,7 @@ class LaravelEtApi implements EtInterface {
      * @param ET_Client $fuel
      * @param ET_DataExtension_Row $fuelDe
      * @param ET_DataExtension_Column $fuelDeColumn
+     * @param ET_Get $fuelGet
      */
     function __construct(Client $client, ET_Client $fuel, ET_DataExtension_Row $fuelDe, ET_DataExtension_Column $fuelDeColumn, ET_DataExtension $fuelDext)
     {
@@ -170,8 +173,8 @@ class LaravelEtApi implements EtInterface {
         } catch (BadResponseException $exception) {
             //spit out exception if curl fails or server is angry
             $exc = $exception->getResponse()->getBody(true);
-            echo $exc. "\n";
-
+            //echo $exc. "\n";
+            return false;
         }
 
         return compact('responseBody');
@@ -371,6 +374,7 @@ class LaravelEtApi implements EtInterface {
             //spit out exception if curl fails or server is angry
             $exc = $exception->getResponse()->getBody(true);
             echo "Oh No! Something went wrong! ".$exc;
+            return false;
         }
         return compact('responseBody');
     }
@@ -489,7 +493,7 @@ class LaravelEtApi implements EtInterface {
      * @param $deStructures
      * @return array (response)
      */
-    public function createDe($deStructures)
+    public function createDe($deStructures, $BusinessUnit = false)
     {
         $this->fuelDext->authStub = $this->fuel;
 
@@ -500,6 +504,19 @@ class LaravelEtApi implements EtInterface {
                 "Name" => $k,
                 "CustomerKey" => $k
             ];
+
+            if ($BusinessUnit){
+                //define Business Unit ID (mid)
+                $this->fuelDext->authStub->BusinessUnit = (object)['ID'=>$BusinessUnit, 'ClientID'=>$BusinessUnit];
+                $this->fuelDext->props['Client'] = array('ID'=>$BusinessUnit, 'IDSpecified'=> true);
+            }
+
+            $this->fuelDext->props['IsSendable'] = true;
+//            $this->fuelDext->props['SendableDataExtensionField'] = 'EMAIL';
+            //$this->fuelDext->props['IsSendableSpecified'] = true;
+              $this->fuelDext->props['SendableDataExtensionField'] = (object) ['Name'=>'email', 'Value'=>''];
+              $this->fuelDext->props['SendableSubscriberField'] = (object) ['Name'=>'Subscriber Key', 'Value'=>'Subscriber Key'];
+
 
             $this->fuelDext->columns = [];
 
@@ -515,7 +532,7 @@ class LaravelEtApi implements EtInterface {
             }
             catch (Exception $e)
             {
-                echo "Oh No! Something went wrong! ".$exc;
+                echo "Oh No! Something went wrong! ".$e;
 
                 print 'Message: '.$getRes->message."\n";
             }
@@ -523,5 +540,351 @@ class LaravelEtApi implements EtInterface {
 
         return compact('getRes');
     }
+
+    public function deleteDe($deName){
+        $this->fuelDext->authStub = $this->fuel;
+
+        $this->fuelDext->props = [
+            "CustomerKey" => $deName
+        ];
+
+        $this->fuelDext->columns = [];
+
+        try
+        {
+            $getRes = $this->fuelDext->delete();
+
+            print 'The Following DE was deleted: '. $deName. "\n";
+        }
+        catch (Exception $e)
+        {
+            echo "Oh No! Something went wrong! ".$deName;
+            print 'Message: '.$getRes->message."\n";
+        }
+
+
+        return compact('getRes');
+    }
+
+
+    /**
+     * Gets all the existing Data Extensions
+     *
+     */
+    public function getDes($BusinessUnit = false){
+        $this->fuelDext->authStub = $this->fuel;
+
+        //dd($this->fuelDext->authStub);
+        $this->fuelDext->props = array(
+            'Client.ID',
+            'CustomerKey',
+            'Name'
+        );
+
+        if ($BusinessUnit) {
+            $this->fuelDext->authStub->BusinessUnit = (object)['ID'=>$BusinessUnit];
+            //$this->fuelDext->filter = array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit);
+        }
+        try
+        {
+            $getRes = $this->fuelDext->get();
+
+        }
+        catch (Exception $e)
+        {
+            echo "Oh No! Something went wrong! ".$e;
+            print 'Message: '.$getRes->message."\n";
+        }
+
+        return compact('getRes');
+
+    }
+
+
+    /**
+     * Gets Data Extension
+     *
+     */
+    public function getDe($name, $BusinessUnit = false){
+        $this->fuelDext->authStub = $this->fuel;
+
+        $this->fuelDext->props = array('Client.ID','CustomerKey','Name', 'CategoryID');
+
+        $this->fuelDext->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals','Value' => $name);
+
+        if ($BusinessUnit){
+            //define Business Unit ID (mid)
+            $this->fuelDext->authStub->BusinessUnit = (object)['ID'=>$BusinessUnit];
+//            $this->fuelDext->filter = array(
+//                'LeftOperand' => array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals','Value' => $name),
+//                'LogicalOperator' => 'AND',
+//                'RightOperand' => array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit)
+//            );
+        }
+
+        try
+        {
+            $getRes = $this->fuelDext->get();
+
+        }
+        catch (Exception $e)
+        {
+            echo "Oh No! Something went wrong! ".$e;
+
+            print 'Message: '.$getRes->message."\n";
+        }
+
+        return compact('getRes');
+
+    }
+
+    public function getSends($sendIds, $startDate= null, $endDate=null){
+        $sendFilter = array();
+        $objectType = "Send";
+
+        $sendProps = array(
+            'ID',
+            'Client.ID',
+            'SentDate',
+            'HardBounces',
+            'SoftBounces',
+            'OtherBounces',
+            'UniqueClicks',
+            'UniqueOpens',
+            'NumberSent',
+            'NumberDelivered',
+            'Unsubscribes',
+            'MissingAddresses',
+            'Subject',
+            'PreviewURL',
+            'Status',
+            'IsMultipart',
+            'EmailName');
+
+//        $startDate = date('Y-m-d\TH:i:s', strtotime('-365 day'));
+//        $endDate = date('Y-m-d\TH:i:s');
+
+        if ($startDate && $endDate) {
+            $sendFilter = array(
+                'LeftOperand' => array(
+                    'Property' => 'SentDate',
+                    'SimpleOperator' => 'between',
+                    'Value' => array($startDate, $endDate)
+                ),
+                'LogicalOperator' =>
+                    'AND',
+                'RightOperand' => array(
+                    'Property' => 'ID',
+                    'SimpleOperator' => 'IN',
+                    'Value' => $sendIds
+                )
+            );
+        }else{
+            if (count($sendIds)>0) {
+                if (count($sendIds) > 1) {
+                    $sendFilter = array('Property' => 'ID', 'SimpleOperator' => 'IN', 'Value' => $sendIds);
+                } else {
+                    $sendFilter = array('Property' => 'ID', 'SimpleOperator' => 'equals', 'Value' => $sendIds[0]);
+                }
+            }
+        }
+
+        $getRes = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error creating ET email(createEmail). Message: ' . $getRes->message );
+            return false;
+        }
+    }
+
+
+    public function getFolders(){
+        $objectType = "DataFolder";
+        $sendProps = array(
+            'ID',
+            'Name',
+            );
+
+        $sendFilter = null;
+        $getResponse = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        $view_data = Array();
+
+        $view_data = $getResponse->results;
+
+        return $view_data;
+    }
+
+
+    public function createEmail($name, $subject, $html){
+        $email = new \ET_Email();
+        $email->authStub = $this->fuel;
+        $email->props = array(
+            'CustomerKey'=> $name,
+            'Name'=>$name,
+            'Subject' => $subject,
+            'HTMLBody' => $html
+        );
+
+        $getRes = $email->post();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error creating ET email(createEmail). Message: ' . $getRes->message );
+            return false;
+        }
+
+    }
+
+    public function retrieveEmails(){
+        $email = new \ET_Email();
+        $email->authStub = $this->fuel;
+        $getRes = $email->get();
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error retrieving ET email(retrieveEmails). Message: ' . $getRes->message );
+            return false;
+        }
+
+    }
+
+    public function deleteEmails($id){
+        $email = new \ET_Email();
+        $email->authStub = $this->fuel;
+        $email->props = array(
+            'ID'=> $id
+        );
+        $getRes = $email->delete();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error retrieving ET email(retrieveEmails). Message: ' . $getRes->message );
+            return false;
+        }
+    }
+
+
+    /**
+     * Sends email to ET using a Data Extension
+     * @param $email Email ID
+     * @param bool|false $DEname Data Extension Customer Key
+     * @param string $emailClassification Email Classification
+     * @return bool|\ET_Perform Perform response
+     * @throws \Exception
+     */
+    public function sendEmailToDataExtension($email, $DEname = false, $emailClassification = "Default Commercial"){
+//        $SendClassificationCustomerKey = "Default Commercial";
+//        $EmailIDForSendDefinition = $email;
+//        $sd = new \ET_Email_SendDefinition();
+//        $sd->authStub = $this->fuel;
+//        $sd->props = array(
+//            'Name'=>$name,
+//            'CustomerKey'=>$name,
+//            'Description'=>"Created with Mason",
+//            'SendClassification'=>array("CustomerKey"=>$SendClassificationCustomerKey),
+//            'Email'=>array("ID"=>$EmailIDForSendDefinition)
+//        );
+//
+//        if ($DEname){
+//            $sd->props["SendDefinitionList"] = array("CustomerKey" => $DEname, "DataSourceTypeID" => "CustomObject");
+//        }
+//
+//        $getRes = $sd->post();
+
+        $getRes = $this->fuel->SendEmailToDataExtension($email, $DEname, $emailClassification);
+        //$res_send = $sd->send();
+
+        if ($getRes->status == 'true')
+        {
+            return $getRes;
+        }else{
+            Log::error('Error creating ET email(createSendDefinition). Message: ', [$getRes] );
+            return false;
+        }
+    }
+
+
+
+    public function deleteSendDefinition($name){
+        $sd = new \ET_Email_SendDefinition();
+        $sd->authStub = $this->fuel;
+
+        $sd->props = array(
+            'CustomerKey'=>$name
+        );
+
+        $getRes = $sd->delete();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error deleting SendDefinition(deleteSendDefinition). Message: ', [$getRes] );
+            return false;
+        }
+
+    }
+
+    public function getSendDefinitions(){
+        $sd = new \ET_Email_SendDefinition();
+        $sd->authStub = $this->fuel;
+        $sd->props = array(
+            'Name',
+            'Client.ID',
+            'CustomerKey',
+            'Description',
+            'Email.ID',
+            'CategoryID',
+            'SendDefinitionList',
+            'SenderProfile.CustomerKey'
+        );
+
+        $getRes = $sd->get();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error retrieving (getSendDefinition). Message: ' . $getRes->message );
+            return false;
+        }
+    }
+
+
+    public function getSendClassifications(){
+        $objectType = "SendClassification";
+        $sendProps = array(
+            'ObjectID',
+            'Client.ID',
+            'CustomerKey',
+            'Name',
+            'SendClassificationType',
+            'Description',
+            'SenderProfile.CustomerKey',
+            'DeliveryProfile.CustomerKey',
+            'ArchiveEmail'
+        );
+
+        $sendFilter = null;
+        $getRes = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error geting SendClassification ET (getSendClassification). Message: ' . $getRes->message );
+            return false;
+        }
+    }
+
 
 }
