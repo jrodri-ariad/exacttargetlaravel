@@ -665,20 +665,37 @@ class LaravelEtApi implements EtInterface {
 //        $endDate = date('Y-m-d\TH:i:s');
 
         if ($startDate && $endDate) {
-            $sendFilter = array(
-                'LeftOperand' => array(
-                    'Property' => 'SentDate',
-                    'SimpleOperator' => 'between',
-                    'Value' => array($startDate, $endDate)
-                ),
-                'LogicalOperator' =>
-                    'AND',
-                'RightOperand' => array(
-                    'Property' => 'ID',
-                    'SimpleOperator' => 'IN',
-                    'Value' => $sendIds
-                )
-            );
+            if (count($sendIds) > 1) {
+                $sendFilter = array(
+                    'LeftOperand' => array(
+                        'Property' => 'SentDate',
+                        'SimpleOperator' => 'between',
+                        'Value' => array($startDate, $endDate)
+                    ),
+                    'LogicalOperator' =>
+                        'AND',
+                    'RightOperand' => array(
+                        'Property' => 'ID',
+                        'SimpleOperator' => 'IN',
+                        'Value' => $sendIds
+                    )
+                );
+            }else{
+                $sendFilter = array(
+                    'LeftOperand' => array(
+                        'Property' => 'SentDate',
+                        'SimpleOperator' => 'between',
+                        'Value' => array($startDate, $endDate)
+                    ),
+                    'LogicalOperator' =>
+                        'AND',
+                    'RightOperand' => array(
+                        'Property' => 'ID',
+                        'SimpleOperator' => 'equals',
+                        'Value' => $sendIds[0]
+                    )
+                );
+            }
         }else{
             if (count($sendIds)>0) {
                 if (count($sendIds) > 1) {
@@ -782,26 +799,8 @@ class LaravelEtApi implements EtInterface {
      * @throws \Exception
      */
     public function sendEmailToDataExtension($email, $DEname = false, $emailClassification = "Default Commercial"){
-//        $SendClassificationCustomerKey = "Default Commercial";
-//        $EmailIDForSendDefinition = $email;
-//        $sd = new \ET_Email_SendDefinition();
-//        $sd->authStub = $this->fuel;
-//        $sd->props = array(
-//            'Name'=>$name,
-//            'CustomerKey'=>$name,
-//            'Description'=>"Created with Mason",
-//            'SendClassification'=>array("CustomerKey"=>$SendClassificationCustomerKey),
-//            'Email'=>array("ID"=>$EmailIDForSendDefinition)
-//        );
-//
-//        if ($DEname){
-//            $sd->props["SendDefinitionList"] = array("CustomerKey" => $DEname, "DataSourceTypeID" => "CustomObject");
-//        }
-//
-//        $getRes = $sd->post();
 
         $getRes = $this->fuel->SendEmailToDataExtension($email, $DEname, $emailClassification);
-        //$res_send = $sd->send();
 
         if ($getRes->status == 'true')
         {
