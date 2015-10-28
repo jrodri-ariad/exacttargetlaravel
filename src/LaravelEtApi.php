@@ -528,12 +528,9 @@ class LaravelEtApi implements EtInterface {
             {
                 $getRes = $this->fuelDext->post();
 
-                print 'The Following DE was created: '. $k. "\n";
             }
             catch (Exception $e)
             {
-                echo "Oh No! Something went wrong! ".$e;
-
                 print 'Message: '.$getRes->message."\n";
             }
         }
@@ -553,8 +550,6 @@ class LaravelEtApi implements EtInterface {
         try
         {
             $getRes = $this->fuelDext->delete();
-
-            print 'The Following DE was deleted: '. $deName. "\n";
         }
         catch (Exception $e)
         {
@@ -752,15 +747,24 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error creating ET email(createEmail). Message: ' . $getRes->message );
+            Log::error('Error creating ET email(createEmail). Message: ', [$getRes]);
             return false;
         }
 
     }
 
-    public function retrieveEmails(){
+    public function retrieveEmails($name=null){
         $email = new \ET_Email();
         $email->authStub = $this->fuel;
+
+        if ($name){
+            $email->filter = array(
+                'Property' => 'CustomerKey',
+                'SimpleOperator' => 'equals',
+                'Value' => $name
+            );
+        }
+
         $getRes = $email->get();
         if ($getRes->status == true)
         {
@@ -798,15 +802,40 @@ class LaravelEtApi implements EtInterface {
      * @return bool|\ET_Perform Perform response
      * @throws \Exception
      */
-    public function sendEmailToDataExtension($email, $DEname = false, $emailClassification = "Default Commercial"){
+    public function sendEmailToDataExtension($email, $publicationListID, $DEname = false, $emailClassification = "Default Commercial"){
+        $SendClassificationCustomerKey = "Default Commercial";
+        $EmailIDForSendDefinition = $email;
+        $sd = new \ET_Email_SendDefinition();
+        $sd->authStub = $this->fuel;
+        $sd->props = array(
+            'Name'=>uniqid(),
+            'CustomerKey'=>uniqid(),
+            'Description'=>"Created with Mason",
+            'SendClassification'=>array("CustomerKey"=>$SendClassificationCustomerKey),
+            'Email'=>array("ID"=>$EmailIDForSendDefinition)
+        );
 
-        $getRes = $this->fuel->SendEmailToDataExtension($email, $DEname, $emailClassification);
+        if ($DEname){
+            $sd->props["SendDefinitionList"] = array(
+                "CustomerKey" => $DEname,
+                'List'=>array(
+                    'ID'=>$publicationListID,
+                    'IDSpecified'=>true
+                ),
+                "DataSourceTypeID" => "CustomObject"
+            );
+        }
 
+        $getRes = $sd->post();
+
+        //$getRes = $this->fuel->SendEmailToDataExtension($email, $DEname, $emailClassification);
         if ($getRes->status == 'true')
         {
-            return $getRes;
+            $res_send = $sd->send();
+            Log::debug('sendEmailToDataExtension' . print_r($res_send));
+            return $res_send;
         }else{
-            Log::error('Error creating ET email(createSendDefinition). Message: ', [$getRes] );
+            Log::error('Error creating ET email(createSendDefinition). Message: ' . print_r($getRes) );
             return false;
         }
     }
@@ -885,5 +914,227 @@ class LaravelEtApi implements EtInterface {
         }
     }
 
+
+    public function getUnsubscribes(){
+
+        $sc = new \ET_Subscriber();
+        $sc->authStub = $this->fuel;
+
+        $sc->props = array(
+            'EmailAddress',
+            'Client.ID',
+            'Status'
+        );
+
+
+        $sc->filter = array(
+            'Property' => 'Status','SimpleOperator' => 'equals','Value' => 'Unsubscribed'
+        );
+
+        $getRes = $sc->get();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error geting Unsubscribes ET (getUnsubscribes). Message: ' . $getRes->message,[$getRes]);
+            return false;
+        }
+    }
+
+    public function getUnsubscribed($email){
+        $sc = new \ET_Subscriber();
+        $sc->authStub = $this->fuel;
+
+//        $sc->props = array(
+//            'EmailAddress',
+//            'Client.ID',
+//            'Status'
+//        );
+
+
+        $sc->filter = array(
+            'LeftOperand'=>array('Property' => 'Status','SimpleOperator' => 'equals','Value' => 'Unsubscribed'),
+            'LogicalOperator' =>
+                'AND',
+            'RightOperand' => array(
+                'Property' => 'SubscriberKey',
+                'SimpleOperator' => 'equals',
+                'Value' => $email
+            )
+
+        );
+        $getRes = $sc->get();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error geting Unsubscribed ET (getUnsubscribed). Message: ' . $getRes->message,[$getRes]);
+            return false;
+        }
+    }
+
+
+    public function getListSubscribers($list){
+        $sc = new \ET_List_Subscriber();
+        $sc->authStub = $this->fuel;
+
+//        $sc->props = array(
+//            'SubscriberKey',
+//            'Client.ID',
+//            'Status',
+//            'ListID',
+//            'UnsubscribedDate'
+//        );
+
+
+//        $sc->filter = array(
+//            'Property' => 'ListID','SimpleOperator' => 'equals','Value' => $list
+//        );
+        $getRes = $sc->get();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error geting List Subscribers ET (getListSubscribers). Message: ' . $getRes->message,[$getRes]);
+            return false;
+        }
+    }
+
+
+    /**
+     * @param $list Publication List ID
+     * @param $email Email Address / SubscriberKey
+     * @param $status Status /Unsubscribed-Active
+     * @return bool|\ET_Patch
+     */
+    public function UpdateListSubscriber($list, $email, $status){
+        $s = new \ET_Subscriber();
+        $s->authStub = $this->fuel;
+
+
+        $s->props = array(
+            "SubscriberKey" => $email,
+            "Lists" => array(
+                "ID" => $list
+            ),
+            "Status"=>$status
+            );
+
+        $getRes = $s->patch();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error('Error getting UpdateListSubscribers ET (UpdateListSubscribers). Message: ' . $getRes->message );
+            return false;
+        }
+
+    }
+
+    public function getTriggeredSends(){
+        $ts = new \ET_TriggeredSend();
+        $ts->authStub = $this->fuel;
+
+
+        $getRes = $ts->get();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error($getRes->message );
+            return $getRes;
+        }
+    }
+
+    public function deleteTriggeredSend($name){
+        $ts = new \ET_TriggeredSend();
+        $ts->authStub = $this->fuel;
+
+        $ts->props = array(
+            'CustomerKey'=>$name
+        );
+
+        $getRes = $ts->delete();
+
+        if ($getRes->status == true)
+        {
+            return $getRes;
+        }else{
+            Log::error($getRes->message);
+            return $getRes;
+        }
+    }
+
+
+    /**
+     * Sends a Triggered Send to defined Email Address
+     * @param $email Email Address to send to
+     * @param $emailid Email ID (content of the email to be sent)
+     * @return bool|\ET_Patch
+     * @throws \Exception
+     */
+    public function sendTriggered($email, $emailid){
+        $sendClassification = "Default Commercial";
+        $name = uniqid();
+        $ts = new \ET_TriggeredSend();
+        $ts->authStub = $this->fuel;
+
+        $ts->props = array(
+            'CustomerKey'=> $name,
+            'Name'=> $name,
+            'Description'=>'Mason Test Triggered Send',
+            'Email'=>array(
+                'ID'=>$emailid
+            ),
+            'SendClassification'=>array(
+                'CustomerKey'=>$sendClassification
+            ),
+            'EmailSubject'=>'Testing Mason Triggered Send',
+            'TriggeredSendStatus'=>'Active',
+            'RefreshContent'=>'true',
+            'SuppressTracking'=>'true',
+            'Priority'=>'High'
+        );
+
+        $getRes = $ts->post();
+
+        if ($getRes->status == true)
+        {
+            $patchTrig = new \ET_TriggeredSend();
+            $patchTrig->authStub = $this->fuel;
+            $patchTrig->props = array(
+                'CustomerKey' => $name,
+                'TriggeredSendStatus' => 'Active',
+                'RefreshContent'=>'true'
+            );
+
+            $patchTrig->subscribers =  array(
+                array(
+                    'EmailAddress'=> $email,
+                    'SubscriberKey'=> $email,
+                )
+            );
+
+            $patchResult = $patchTrig->patch();
+            $sendresult = $patchTrig->send();
+            if ($patchResult->status == true && $sendresult->status == true)
+            {
+                return $patchResult;
+            }else{
+                Log::error($patchResult->message . " Send: " . $sendresult->message);
+                return false;
+            }
+
+        }else{
+            Log::error($getRes->message);
+            return false;
+        }
+
+    }
 
 }
