@@ -56,26 +56,35 @@ class LaravelEtApi implements EtInterface {
 
 
     /**
-     * Construction Work
-     *
      * @param Client $client
      * @param ET_Client $fuel
      * @param ET_DataExtension_Row $fuelDe
      * @param ET_DataExtension_Column $fuelDeColumn
-     * @param ET_Get $fuelGet
+     * @param ET_DataExtension $fuelDext
+     * @param null $config Configuration passed takes precedence over configuration in file.
      */
-    function __construct(Client $client, ET_Client $fuel, ET_DataExtension_Row $fuelDe, ET_DataExtension_Column $fuelDeColumn, ET_DataExtension $fuelDext)
+    function __construct(Client $client, ET_DataExtension_Row $fuelDe, ET_DataExtension_Column $fuelDeColumn, ET_DataExtension $fuelDext, $config=null)
     {
-
         $this->getTokenUri = 'https://auth.exacttargetapis.com/v1/requestToken';
         $this->client = $client;
         $this->fuelDeColumn = $fuelDeColumn;
-        $this->fuel = $fuel;
         $this->fuelDe = $fuelDe;
         $this->fuelDext = $fuelDext;
-        $this->config = $this->getConfig();
-        $this->clientId = $this->config['clientid'];
-        $this->clientSecret = $this->config['clientsecret'];
+
+        if ($config){
+            $config['xmlloc'] = __DIR__.'/../wsdl/ExactTargetWSDL.xml';
+            $this->config = $config;
+            $this->clientId = $config['clientid'];
+            $this->clientSecret = $this->config['clientsecret'];
+
+
+        }else{
+            $this->config = $this->getConfig();
+            $this->clientId = $this->config['clientid'];
+            $this->clientSecret = $this->config['clientsecret'];
+        }
+
+        $this->fuel = new ET_Client(false, false, $config);
         $this->accessToken = $this->getToken($this->clientId, $this->clientSecret, $this->getTokenUri);
 
     }
@@ -514,8 +523,8 @@ class LaravelEtApi implements EtInterface {
             $this->fuelDext->props['IsSendable'] = true;
 //            $this->fuelDext->props['SendableDataExtensionField'] = 'EMAIL';
             //$this->fuelDext->props['IsSendableSpecified'] = true;
-              $this->fuelDext->props['SendableDataExtensionField'] = (object) ['Name'=>'email', 'Value'=>''];
-              $this->fuelDext->props['SendableSubscriberField'] = (object) ['Name'=>'Subscriber Key', 'Value'=>'Subscriber Key'];
+            $this->fuelDext->props['SendableDataExtensionField'] = (object) ['Name'=>'email', 'Value'=>''];
+            $this->fuelDext->props['SendableSubscriberField'] = (object) ['Name'=>'Subscriber Key', 'Value'=>'Subscriber Key'];
 
 
             $this->fuelDext->columns = [];
@@ -718,7 +727,7 @@ class LaravelEtApi implements EtInterface {
         $sendProps = array(
             'ID',
             'Name',
-            );
+        );
 
         $sendFilter = null;
         $getResponse = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
@@ -971,6 +980,7 @@ class LaravelEtApi implements EtInterface {
             return $getRes;
         }else{
             Log::error('Error geting Unsubscribed ET (getUnsubscribed). Message: ' . $getRes->message,[$getRes]);
+            //throw new \Exception('could not get Unsubscribe Status');
             return false;
         }
     }
@@ -1021,7 +1031,7 @@ class LaravelEtApi implements EtInterface {
                 "ID" => $list
             ),
             "Status"=>$status
-            );
+        );
 
         $getRes = $s->patch();
 
