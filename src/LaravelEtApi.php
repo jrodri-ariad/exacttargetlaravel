@@ -1097,7 +1097,7 @@ class LaravelEtApi implements EtInterface {
         $ts->props = array(
             'CustomerKey'=> $name,
             'Name'=> $name,
-            'Description'=>'Mason Test Triggered Send',
+            'Description'=>'Lantern Test Triggered Send',
             'Email'=>array(
                 'ID'=>$emailid
             ),
@@ -1123,12 +1123,24 @@ class LaravelEtApi implements EtInterface {
                 'RefreshContent'=>'true'
             );
 
-            $patchTrig->subscribers =  array(
-                array(
-                    'EmailAddress'=> $email,
-                    'SubscriberKey'=> $email,
-                )
-            );
+            if (is_array($email)){
+                $subscribers = [];
+                foreach($email as $e){
+                    $subscribers[] = [
+                        'EmailAddress'=>$e,
+                        'SubscriberKey' => $e
+                    ];
+                }
+                $patchTrig->subscribers = $subscribers;
+            }else{
+                $patchTrig->subscribers =  [
+                    [
+                        'EmailAddress'=> $email,
+                        'SubscriberKey'=> $email,
+                    ]
+                ];
+            }
+
 
             $patchResult = $patchTrig->patch();
             $sendresult = $patchTrig->send();
