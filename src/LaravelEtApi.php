@@ -841,10 +841,10 @@ class LaravelEtApi implements EtInterface {
         if ($getRes->status == 'true')
         {
             $res_send = $sd->send();
-            Log::debug('sendEmailToDataExtension' . print_r($res_send));
+            Log::debug('sendEmailToDataExtension', $res_send);
             return $res_send;
         }else{
-            Log::error('Error creating ET email(createSendDefinition). Message: ' . print_r($getRes) );
+            Log::error('Error creating ET email(createSendDefinition). Message: ', $getRes) ;
             return false;
         }
     }
