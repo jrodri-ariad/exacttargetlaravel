@@ -461,9 +461,12 @@ class LaravelEtApi implements EtInterface {
         if ($getRes->status == true)
         {
             return compact('getRes');
+        }else{
+            Log::error("Error creating Row", [$getRes]);
+            return false;
         }
 
-        return print 'Message: '.$getRes->message."\n";
+
     }
 
 
@@ -540,7 +543,8 @@ class LaravelEtApi implements EtInterface {
             }
             catch (Exception $e)
             {
-                print 'Message: '.$getRes->message."\n";
+                Log::error("Error creating Data Extension", [$getRes]);
+                return false;
             }
         }
 
@@ -562,8 +566,8 @@ class LaravelEtApi implements EtInterface {
         }
         catch (Exception $e)
         {
-            echo "Oh No! Something went wrong! ".$deName;
-            print 'Message: '.$getRes->message."\n";
+            Log::error("Error deleting Data Extension", [$e]);
+            return false;
         }
 
 
@@ -596,8 +600,8 @@ class LaravelEtApi implements EtInterface {
         }
         catch (Exception $e)
         {
-            echo "Oh No! Something went wrong! ".$e;
-            print 'Message: '.$getRes->message."\n";
+            Log::error("Error getting Data Extension", [$e]);
+            return false;
         }
 
         return compact('getRes');
@@ -633,9 +637,8 @@ class LaravelEtApi implements EtInterface {
         }
         catch (Exception $e)
         {
-            echo "Oh No! Something went wrong! ".$e;
-
-            print 'Message: '.$getRes->message."\n";
+            Log::error("Error getting Data Extension", [$e]);
+            return false;
         }
 
         return compact('getRes');
@@ -716,7 +719,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error creating ET email(createEmail). Message: ' . $getRes->message );
+            Log::error('Error creating ET email(createEmail)', [$getRes]);
             return false;
         }
     }
@@ -841,10 +844,10 @@ class LaravelEtApi implements EtInterface {
         if ($getRes->status == 'true')
         {
             $res_send = $sd->send();
-            Log::debug('sendEmailToDataExtension', $res_send);
+            Log::debug('sendEmailToDataExtension', [$res_send]);
             return $res_send;
         }else{
-            Log::error('Error creating ET email(createSendDefinition). Message: ', $getRes) ;
+            Log::error('Error creating ET email(createSendDefinition). Message: ', [$getRes]) ;
             return false;
         }
     }
@@ -891,7 +894,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error retrieving (getSendDefinition). Message: ' . $getRes->message );
+            Log::error('Error retrieving (getSendDefinition)', [$getRes] );
             return false;
         }
     }
@@ -918,7 +921,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error geting SendClassification ET (getSendClassification). Message: ' . $getRes->message );
+            Log::error('Error geting SendClassification ET (getSendClassification).', [$getRes] );
             return false;
         }
     }
@@ -946,7 +949,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error geting Unsubscribes ET (getUnsubscribes). Message: ' . $getRes->message,[$getRes]);
+            Log::error('Error geting Unsubscribes ET (getUnsubscribes)',[$getRes]);
             return false;
         }
     }
@@ -979,7 +982,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error geting Unsubscribed ET (getUnsubscribed). Message: ' . $getRes->message,[$getRes]);
+            Log::error('Error geting Unsubscribed ET (getUnsubscribed)', [$getRes]);
             //throw new \Exception('could not get Unsubscribe Status');
             return false;
         }
@@ -1008,7 +1011,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error geting List Subscribers ET (getListSubscribers). Message: ' . $getRes->message,[$getRes]);
+            Log::error('Error geting List Subscribers ET (getListSubscribers)', [$getRes]);
             return false;
         }
     }
@@ -1039,7 +1042,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error('Error getting UpdateListSubscribers ET (UpdateListSubscribers). Message: ' . $getRes->message );
+            Log::error('Error getting UpdateListSubscribers ET (UpdateListSubscribers)', [$getRes]);
             return false;
         }
 
@@ -1056,7 +1059,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error($getRes->message );
+            Log::error("Error getting Triggered Sends", [$getRes]);
             return $getRes;
         }
     }
@@ -1075,7 +1078,7 @@ class LaravelEtApi implements EtInterface {
         {
             return $getRes;
         }else{
-            Log::error($getRes->message);
+            Log::error("Error deleting Triggered Send", [$getRes]);
             return $getRes;
         }
     }
@@ -1148,12 +1151,12 @@ class LaravelEtApi implements EtInterface {
             {
                 return $patchResult;
             }else{
-                Log::error($patchResult->message . " Send: " . $sendresult->message);
+                Log::error("Error Sending Triggered Send", [$patchResult,$sendresult]);
                 return false;
             }
 
         }else{
-            Log::error($getRes->message);
+            Log::error("Error (sendTriggered)", [$getRes]);
             return false;
         }
 
