@@ -727,7 +727,7 @@ class LaravelEtApi implements EtInterface {
 
         $total_opens  = $this->get_total_events($et_openevents, $props, $filters);
         $total_clicks = $this->get_total_events($et_clickevents, $props, $filters);
-        Log::info('total_opens: ' . $total_opens . 'total_clicks: ' . $total_clicks);
+        Log::info('total_opens: ' . print_r($total_opens, 1) . 'total_clicks: ' . print_r($total_clicks, 1));
         return ['clicks' => $total_clicks, 'opens' => $total_opens];
     }
 
@@ -743,6 +743,9 @@ class LaravelEtApi implements EtInterface {
         $et_events->filter   = $filters;
 
         $response = $et_events->get();
+
+        Log::info('ET_Get: ', ['r' => print_r($response->results, 1)]);
+
         $counts = $this->reduce_total_events($response->results);
 
         while ($response->moreResults == true) {// Keep querying API if more results exist
@@ -753,9 +756,14 @@ class LaravelEtApi implements EtInterface {
         return $counts;
     }
 
+    /**
+     * reduce results into array of sendIDs with totals for results type
+     * @param Array $results
+     */
     private function reduce_total_events($results) {
         $counts = [];
         foreach ($results as $result ) {
+            Log::info('===> SendID: ' . $result->SendID);
             if (array_key_exists($result->SendID, $counts )) {
                 $counts[$result->SendID] ++;
             }
@@ -763,6 +771,7 @@ class LaravelEtApi implements EtInterface {
                 $counts[$result->SendID] = 1;
             }
         }
+        return $counts;
     }
 
 
