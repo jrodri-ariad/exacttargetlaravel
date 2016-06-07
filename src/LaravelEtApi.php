@@ -689,10 +689,7 @@ class LaravelEtApi implements EtInterface {
 
         $getRes = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
 
-        $clicks_opens = $this->GetTotals($sendIds);
-
         if ($getRes->status == true) {
-            $getRes->Totals = $clicks_opens;
             return $getRes;
         }
         else {
