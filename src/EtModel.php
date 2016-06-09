@@ -85,14 +85,23 @@ class EtModel extends LaravelEtApi {
 	 * @return array
 	 */
 	public function getTotals($sendIDs) {
-		$model  = new $this->model_name;
-		$etype  = $this->map['EventType'];
-		$counts = $model::whereIn($this->map['SendID'], $sendIDs)
-							 ->groupBy($etype)
-							 ->get([$etype, DB::raw('count(' . $etype . ') as counts')]);
-		dd($counts);
+		$event_type = $this->map['EventType']['column'];
+		$send_id    = $this->map['SendID']['column'];
 
-		//return ['clicks' => $counts, 'opens' => $total_opens];
+		$events = $this->model->whereIn($send_id, $sendIDs)
+									 ->groupBy($send_id, $event_type)
+									 ->get([$event_type, $send_id, DB::raw('count(' . $event_type . ') as totals')])
+									 ->toArray();
+		$totals = [];
+		foreach ($events as $event) {
+			if (array_key_exists($event[$send_id], $totals)) {
+				$totals[$event[$send_id]][$event[$event_type]] = $event['totals'];
+			}
+			else {
+				$totals[$event[$send_id]] = [$event[$event_type] => $event['totals']];
+			}
+		}
+		return $totals;
 	}
 
 	/**
