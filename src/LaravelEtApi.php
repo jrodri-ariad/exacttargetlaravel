@@ -1184,11 +1184,13 @@ class LaravelEtApi implements EtInterface {
 	 * Sends a Triggered Send to defined Email Address
 	 * @param $email Email Address to send to
 	 * @param $emailid Email ID (content of the email to be sent)
+	 * @param $sendClassification the Send Classification usually Default Commercial
+	 * @param $properties array of extra properties, must be in allowed properties to be passed to ExactTarget.
 	 * @return bool|\ET_Patch
 	 * @throws \Exception
 	 */
-	public function sendTriggered($email, $emailid) {
-		$sendClassification = "Default Commercial";
+	public function sendTriggered($email, $emailid, $sendClassification = "Default Commercial", $properties = []) {
+
 		$name               = uniqid();
 		$ts                 = new \ET_TriggeredSend();
 		$ts->authStub       = $this->fuel;
@@ -1196,19 +1198,26 @@ class LaravelEtApi implements EtInterface {
 		$ts->props = array(
 			 'CustomerKey' => $name,
 			 'Name' => $name,
-			 'Description' => 'Testing Triggered Send',
+			 'Description' => 'Lantern Test Triggered Send',
 			 'Email' => array(
 				  'ID' => $emailid
 			 ),
 			 'SendClassification' => array(
 				  'CustomerKey' => $sendClassification
 			 ),
-			 'EmailSubject' => 'Testing Triggered Send',
+			 'EmailSubject' => 'Testing Lantern Triggered Send',
 			 'TriggeredSendStatus' => 'Active',
 			 'RefreshContent' => 'true',
 			 'SuppressTracking' => 'true',
 			 'Priority' => 'High'
 		);
+
+		$allowed_properties = ['SenderProfile','DeliveryProfile'];
+		foreach ($properties as $key => $property) {
+			if (in_array($key, $allowed_properties)) {
+				$ts->props[$key] = $property;
+			}
+		}
 
 		$getRes = $ts->post();
 
