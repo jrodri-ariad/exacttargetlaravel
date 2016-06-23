@@ -882,18 +882,24 @@ class LaravelEtApi implements EtInterface {
 	 * @return bool|\ET_Perform Perform response
 	 * @throws \Exception
 	 */
-	public function sendEmailToDataExtension($email, $publicationListID, $DEname = false, $emailClassification = "Default Commercial") {
-		$SendClassificationCustomerKey = "Default Commercial";
+	public function sendEmailToDataExtension($email, $publicationListID, $DEname = false, $emailClassification = "Default Commercial", $properties = []) {
+		$SendClassificationCustomerKey = $emailClassification;
 		$EmailIDForSendDefinition      = $email;
 		$sd                            = new \ET_Email_SendDefinition();
 		$sd->authStub                  = $this->fuel;
 		$sd->props                     = array(
 			 'Name' => uniqid(),
 			 'CustomerKey' => uniqid(),
-			 'Description' => "Created with Mason",
+			 'Description' => "Created with ExacttargetLaravel",
 			 'SendClassification' => array("CustomerKey" => $SendClassificationCustomerKey),
 			 'Email' => array("ID" => $EmailIDForSendDefinition)
 		);
+		$allowed_properties = ['SenderProfile','DeliveryProfile'];
+		foreach ($properties as $key => $property) {
+			if (in_array($key, $allowed_properties)) {
+				$sd->props[$key] = $property;
+			}
+		}
 
 		if ($DEname) {
 			$sd->props["SendDefinitionList"] = array(
@@ -989,6 +995,29 @@ class LaravelEtApi implements EtInterface {
 		}
 		else {
 			Log::error('Error geting SendClassification ET (getSendClassification).', [$getRes]);
+			return false;
+		}
+	}
+
+	public function getSenderProfiles() {
+		$objectType = "SenderProfile";
+		$sendProps  = array(
+			 'ObjectID',
+			 'Client.ID',
+			 'CustomerKey',
+			 'Name',
+			 'FromName',
+			 'FromAddress',
+			 'Description',
+		);
+
+		$sendFilter = null;
+		$getRes     = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+		if ($getRes->status == true) {
+			return $getRes;
+		}
+		else {
+			Log::error('Error geting SenderProfiles ET (getSenderProfiles).', [$getRes]);
 			return false;
 		}
 	}
@@ -1167,14 +1196,14 @@ class LaravelEtApi implements EtInterface {
 		$ts->props = array(
 			 'CustomerKey' => $name,
 			 'Name' => $name,
-			 'Description' => 'Lantern Test Triggered Send',
+			 'Description' => 'Testing Triggered Send',
 			 'Email' => array(
 				  'ID' => $emailid
 			 ),
 			 'SendClassification' => array(
 				  'CustomerKey' => $sendClassification
 			 ),
-			 'EmailSubject' => 'Testing Mason Triggered Send',
+			 'EmailSubject' => 'Testing Triggered Send',
 			 'TriggeredSendStatus' => 'Active',
 			 'RefreshContent' => 'true',
 			 'SuppressTracking' => 'true',
