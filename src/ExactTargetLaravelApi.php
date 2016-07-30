@@ -1,6 +1,4 @@
-<?php
-
-namespace digitaladditive\ExactTargetLaravel;
+<?php namespace digitaladditive\ExactTargetLaravel;
 
 use GuzzleHttp\Exception\BadResponseException as BadResponseException;
 use FuelSdkPhp\ET_DataExtension_Column as ET_DataExtension_Column;
@@ -21,7 +19,6 @@ use GuzzleHttp\Client as Client;
  * Class ExactTargetLaravelApi
  *
  * @package App
- *
  */
 class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
@@ -65,7 +62,12 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 
     /**
-     * ExactTargetLaravelApi constructor.
+     * @param Client $client
+     * @param ET_Client $fuel
+     * @param ET_DataExtension_Row $fuelDe
+     * @param ET_DataExtension_Column $fuelDeColumn
+     * @param ET_DataExtension $fuelDext
+     * @param null $config Configuration passed takes precedence over configuration in file.
      */
     function __construct()
     {
@@ -290,7 +292,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 
         while ($results->moreResults)
-        {   
+        {
             $moreResults[] = $fuelDe->GetMoreResults();
         }
 
@@ -603,5 +605,724 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
         {
             throw new Exception($e);
         }
+    }
+    /**
+     * Gets all the existing Data Extensions
+     *
+     */
+    public function getDes($BusinessUnit = false) {
+        $this->fuelDext->authStub = $this->fuel;
+
+        //dd($this->fuelDext->authStub);
+        $this->fuelDext->props = array(
+            'Client.ID',
+            'CustomerKey',
+            'Name'
+        );
+
+        if ($BusinessUnit) {
+            $this->fuelDext->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+            //$this->fuelDext->filter = array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit);
+        }
+        try {
+            $getRes = $this->fuelDext->get();
+
+        }
+        catch (Exception $e) {
+            Log::error("Error getting Data Extension", [$e]);
+            return false;
+        }
+
+        return compact('getRes');
+
+    }
+
+
+    /**
+     * Gets Data Extension
+     *
+     */
+    public function getDe($name, $BusinessUnit = false) {
+        $this->fuelDext->authStub = $this->fuel;
+
+        $this->fuelDext->props = array('Client.ID', 'CustomerKey', 'Name', 'CategoryID');
+
+        $this->fuelDext->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals', 'Value' => $name);
+
+        if ($BusinessUnit) {
+            //define Business Unit ID (mid)
+            $this->fuelDext->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+//            $this->fuelDext->filter = array(
+//                'LeftOperand' => array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals','Value' => $name),
+//                'LogicalOperator' => 'AND',
+//                'RightOperand' => array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit)
+//            );
+        }
+
+        try {
+            $getRes = $this->fuelDext->get();
+
+        }
+        catch (Exception $e) {
+            Log::error("Error getting Data Extension", [$e]);
+            return false;
+        }
+
+        return compact('getRes');
+
+    }
+
+    public function getSends($sendIds, $startDate = null, $endDate = null) {
+
+
+        $sendFilter = array();
+        $objectType = "Send";
+
+        $sendProps = array(
+            'ID',
+            'Client.ID',
+            'SentDate',
+            'HardBounces',
+            'SoftBounces',
+            'OtherBounces',
+            'UniqueClicks',
+            'UniqueOpens',
+            'NumberSent',
+            'NumberDelivered',
+            'Unsubscribes',
+            'MissingAddresses',
+            'Subject',
+            'PreviewURL',
+            'Status',
+            'IsMultipart',
+            'EmailName');
+
+//        $startDate = date('Y-m-d\TH:i:s', strtotime('-365 day'));
+//        $endDate = date('Y-m-d\TH:i:s');
+
+        if ($startDate && $endDate) {
+            if (count($sendIds) > 1) {
+                $sendFilter = array(
+                    'LeftOperand' => array(
+                        'Property' => 'SentDate',
+                        'SimpleOperator' => 'between',
+                        'Value' => array($startDate, $endDate)
+                    ),
+                    'LogicalOperator' =>
+                        'AND',
+                    'RightOperand' => array(
+                        'Property' => 'ID',
+                        'SimpleOperator' => 'IN',
+                        'Value' => $sendIds
+                    )
+                );
+            }
+            else {
+                $sendFilter = array(
+                    'LeftOperand' => array(
+                        'Property' => 'SentDate',
+                        'SimpleOperator' => 'between',
+                        'Value' => array($startDate, $endDate)
+                    ),
+                    'LogicalOperator' =>
+                        'AND',
+                    'RightOperand' => array(
+                        'Property' => 'ID',
+                        'SimpleOperator' => 'equals',
+                        'Value' => $sendIds[0]
+                    )
+                );
+            }
+        }
+        else {
+            if (count($sendIds) > 0) {
+                if (count($sendIds) > 1) {
+                    $sendFilter = array('Property' => 'ID', 'SimpleOperator' => 'IN', 'Value' => $sendIds);
+                }
+                else {
+                    $sendFilter = array('Property' => 'ID', 'SimpleOperator' => 'equals', 'Value' => $sendIds[0]);
+                }
+            }
+        }
+
+        $getRes = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error getting ET Sends(stats)', [$getRes]);
+            return false;
+        }
+    }
+
+
+    /**
+     * Description: GetTotals will grab total clicks or sends ET does not return total opens or clicks in the send object
+     *
+     * @param authStub Object ET client
+     * @param trackingMethod String ET_OpenEvent or ET_ClickEvent
+     * @param sendID Integer SendID to count opens or clicks
+     *
+     * @deprecated this function doesn't save the data to any storage, if you need tracking data don't use.
+     */
+    public function getTotals($sendIDs) {
+
+        $total_opens  = $this->getOpens($sendIDs);
+        $total_clicks  = $this->getClicks($sendIDs);
+
+        Log::info('total_opens: ' . print_r($total_opens, 1) . 'total_clicks: ' . print_r($total_clicks, 1));
+        return ['clicks' => $total_clicks, 'opens' => $total_opens];
+    }
+
+    public function getOpens($sendIDs) {
+        $et_openevents  = new ET_OpenEvent();
+        $props   = array("SendID", "SubscriberKey", "EventDate", "EventType");
+
+        $total_opens  = $this->get_total_events($et_openevents, $props, $this->setPropertyFilter('SendID',$sendIDs));
+
+    }
+
+    public function getClicks($sendIDs) {
+        $et_clickevents = new ET_ClickEvent();
+        $props   = array("SendID", "SubscriberKey", "EventDate", "EventType", "URLID", "URL");
+
+        $total_clicks = $this->get_total_events($et_clickevents, $props, $this->setPropertyFilter('SendID',$sendIDs));
+
+    }
+
+    /**
+     * write the correct filter for SendID
+     * @param $sendIDs
+     * @return ExactTarget Filter
+     */
+    protected function setPropertyFilter($property, Array $sendIDs) {
+        if (count($sendIDs) > 1) {
+            $operator = 'IN';
+            $ids      = $sendIDs;
+        }
+        else {
+            $operator = 'equals';
+            $ids      = $sendIDs[0];
+        }
+        return array('Property' => $property, 'SimpleOperator' => $operator, 'Value' => $ids);
+    }
+
+    /**
+     * Get the total number of opens based on $filters
+     * @param $props
+     * @param $filters
+     * @return int
+     */
+    private function get_total_events($et_events, $props, $filters) {
+        $et_events->authStub = $this->fuel;
+        $et_events->props    = $props;
+        $et_events->filter   = $filters;
+
+        $response = $et_events->get();
+
+        Log::info('ET_Get: ', ['r' => print_r($response->results, 1)]);
+
+        $counts = $this->reduce_total_events($response->results);
+
+        while ($response->moreResults == true) {// Keep querying API if more results exist
+            $response = new ET_Continue($this->fuel, $response->request_id);
+            $counts   = $this->reduce_total_events($response->results, $counts);
+        }
+// Now we have totals of the event
+        return $counts;
+    }
+
+    /**
+     * reduce results into array of sendIDs with totals for results type
+     * @param Array $results
+     */
+    private function reduce_total_events($results, $counts = []) {
+        foreach ($results as $result) {
+            Log::info('===> SendID: ' . $result->SendID);
+            if (array_key_exists($result->SendID, $counts)) {
+                $counts[$result->SendID]++;
+            }
+            else {
+                $counts[$result->SendID] = 1;
+            }
+        }
+        return $counts;
+    }
+
+
+    public function getFolders() {
+        $objectType = "DataFolder";
+        $sendProps  = array(
+            'ID',
+            'Name',
+        );
+
+        $sendFilter  = null;
+        $getResponse = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        $view_data = Array();
+
+        $view_data = $getResponse->results;
+
+        return $view_data;
+    }
+
+
+    public function createEmail($name, $subject, $html) {
+        $email           = new \ET_Email();
+        $email->authStub = $this->fuel;
+        $email->props    = array(
+            'CustomerKey' => $name,
+            'Name' => $name,
+            'Subject' => $subject,
+            'HTMLBody' => $html
+        );
+
+        $getRes = $email->post();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error creating ET email(createEmail). Message: ', [$getRes]);
+            return false;
+        }
+
+    }
+
+    public function retrieveEmails($name = null) {
+        $email           = new \ET_Email();
+        $email->authStub = $this->fuel;
+
+        if ($name) {
+            $email->filter = array(
+                'Property' => 'CustomerKey',
+                'SimpleOperator' => 'equals',
+                'Value' => $name
+            );
+        }
+
+        $getRes = $email->get();
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error retrieving ET email(retrieveEmails). Message: ' . $getRes->message);
+            return false;
+        }
+
+    }
+
+    public function deleteEmails($id) {
+        $email           = new \ET_Email();
+        $email->authStub = $this->fuel;
+        $email->props    = array(
+            'ID' => $id
+        );
+        $getRes          = $email->delete();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error retrieving ET email(retrieveEmails). Message: ' . $getRes->message);
+            return false;
+        }
+    }
+
+
+    /**
+     * Sends email to ET using a Data Extension
+     * @param $email Email ID
+     * @param bool|false $DEname Data Extension Customer Key
+     * @param string $emailClassification Email Classification
+     * @return bool|\ET_Perform Perform response
+     * @throws \Exception
+     */
+    public function sendEmailToDataExtension($email, $publicationListID, $DEname = false, $emailClassification = "Default Commercial", $properties = []) {
+        $SendClassificationCustomerKey = $emailClassification;
+        $EmailIDForSendDefinition      = $email;
+        $sd                            = new \ET_Email_SendDefinition();
+        $sd->authStub                  = $this->fuel;
+        $sd->props                     = array(
+            'Name' => uniqid(),
+            'CustomerKey' => uniqid(),
+            'Description' => "Created with ExacttargetLaravel",
+            'SendClassification' => array("CustomerKey" => $SendClassificationCustomerKey),
+            'Email' => array("ID" => $EmailIDForSendDefinition)
+        );
+        $allowed_properties = ['SenderProfile','DeliveryProfile'];
+        foreach ($properties as $key => $property) {
+            if (in_array($key, $allowed_properties)) {
+                $sd->props[$key] = $property;
+            }
+        }
+
+        if ($DEname) {
+            $sd->props["SendDefinitionList"] = array(
+                "CustomerKey" => $DEname,
+                'List' => array(
+                    'ID' => $publicationListID,
+                    'IDSpecified' => true
+                ),
+                "DataSourceTypeID" => "CustomObject"
+            );
+        }
+
+        $getRes = $sd->post();
+
+        //$getRes = $this->fuel->SendEmailToDataExtension($email, $DEname, $emailClassification);
+        if ($getRes->status == 'true') {
+            $res_send = $sd->send();
+            Log::debug('sendEmailToDataExtension', [$res_send]);
+            return $res_send;
+        }
+        else {
+            Log::error('Error creating ET email(createSendDefinition)', [$getRes]);
+            return false;
+        }
+    }
+
+
+    public function deleteSendDefinition($name) {
+        $sd           = new \ET_Email_SendDefinition();
+        $sd->authStub = $this->fuel;
+
+        $sd->props = array(
+            'CustomerKey' => $name
+        );
+
+        $getRes = $sd->delete();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error deleting SendDefinition(deleteSendDefinition). Message: ', [$getRes]);
+            return false;
+        }
+
+    }
+
+    public function getSendDefinitions() {
+        $sd           = new \ET_Email_SendDefinition();
+        $sd->authStub = $this->fuel;
+        $sd->props    = array(
+            'Name',
+            'Client.ID',
+            'CustomerKey',
+            'Description',
+            'Email.ID',
+            'CategoryID',
+            'SendDefinitionList',
+            'SenderProfile.CustomerKey'
+        );
+
+        $getRes = $sd->get();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error retrieving (getSendDefinition)', [$getRes]);
+            return false;
+        }
+    }
+
+
+    public function getSendClassifications() {
+        $objectType = "SendClassification";
+        $sendProps  = array(
+            'ObjectID',
+            'Client.ID',
+            'CustomerKey',
+            'Name',
+            'SendClassificationType',
+            'Description',
+            'SenderProfile.CustomerKey',
+            'DeliveryProfile.CustomerKey',
+            'ArchiveEmail'
+        );
+
+        $sendFilter = null;
+        $getRes     = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error geting SendClassification ET (getSendClassification).', [$getRes]);
+            return false;
+        }
+    }
+
+    public function getSenderProfiles() {
+        $objectType = "SenderProfile";
+        $sendProps  = array(
+            'ObjectID',
+            'Client.ID',
+            'CustomerKey',
+            'Name',
+            'FromName',
+            'FromAddress',
+            'Description',
+        );
+
+        $sendFilter = null;
+        $getRes     = new ET_Get($this->fuel, $objectType, $sendProps, $sendFilter);
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error geting SenderProfiles ET (getSenderProfiles).', [$getRes]);
+            return false;
+        }
+    }
+
+
+    public function getUnsubscribes() {
+
+        $sc           = new \ET_Subscriber();
+        $sc->authStub = $this->fuel;
+
+        $sc->props = array(
+            'EmailAddress',
+            'Client.ID',
+            'Status'
+        );
+
+
+        $sc->filter = array(
+            'Property' => 'Status', 'SimpleOperator' => 'equals', 'Value' => 'Unsubscribed'
+        );
+
+        $getRes = $sc->get();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error geting Unsubscribes ET (getUnsubscribes)', [$getRes]);
+            return false;
+        }
+    }
+
+    public function getUnsubscribed($email) {
+        $sc           = new \ET_Subscriber();
+        $sc->authStub = $this->fuel;
+
+//        $sc->props = array(
+//            'EmailAddress',
+//            'Client.ID',
+//            'Status'
+//        );
+
+
+        $sc->filter = array(
+            'LeftOperand' => array('Property' => 'Status', 'SimpleOperator' => 'equals', 'Value' => 'Unsubscribed'),
+            'LogicalOperator' =>
+                'AND',
+            'RightOperand' => array(
+                'Property' => 'SubscriberKey',
+                'SimpleOperator' => 'equals',
+                'Value' => $email
+            )
+
+        );
+        $getRes     = $sc->get();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error geting Unsubscribed ET (getUnsubscribed)', [$getRes]);
+            //throw new \Exception('could not get Unsubscribe Status');
+            return false;
+        }
+    }
+
+
+    public function getListSubscribers($list) {
+        $sc           = new \ET_List_Subscriber();
+        $sc->authStub = $this->fuel;
+
+//        $sc->props = array(
+//            'SubscriberKey',
+//            'Client.ID',
+//            'Status',
+//            'ListID',
+//            'UnsubscribedDate'
+//        );
+
+
+//        $sc->filter = array(
+//            'Property' => 'ListID','SimpleOperator' => 'equals','Value' => $list
+//        );
+        $getRes = $sc->get();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error geting List Subscribers ET (getListSubscribers)', [$getRes]);
+            return false;
+        }
+    }
+
+
+    /**
+     * @param $list Publication List ID
+     * @param $email Email Address / SubscriberKey
+     * @param $status Status /Unsubscribed-Active
+     * @return bool|\ET_Patch
+     */
+    public function UpdateListSubscriber($list, $email, $status) {
+        $s           = new \ET_Subscriber();
+        $s->authStub = $this->fuel;
+
+
+        $s->props = array(
+            "SubscriberKey" => $email,
+            "Lists" => array(
+                "ID" => $list
+            ),
+            "Status" => $status
+        );
+
+        $getRes = $s->patch();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error('Error getting UpdateListSubscribers ET (UpdateListSubscribers)', [$getRes]);
+            return false;
+        }
+
+    }
+
+    public function getTriggeredSends() {
+        $ts           = new \ET_TriggeredSend();
+        $ts->authStub = $this->fuel;
+
+
+        $getRes = $ts->get();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error("Error getting Triggered Sends", [$getRes]);
+            return $getRes;
+        }
+    }
+
+    public function deleteTriggeredSend($name) {
+        $ts           = new \ET_TriggeredSend();
+        $ts->authStub = $this->fuel;
+
+        $ts->props = array(
+            'CustomerKey' => $name
+        );
+
+        $getRes = $ts->delete();
+
+        if ($getRes->status == true) {
+            return $getRes;
+        }
+        else {
+            Log::error("Error deleting Triggered Send", [$getRes]);
+            return $getRes;
+        }
+    }
+
+
+    /**
+     * Sends a Triggered Send to defined Email Address
+     * @param $email Email Address to send to
+     * @param $emailid Email ID (content of the email to be sent)
+     * @param $sendClassification the Send Classification usually Default Commercial
+     * @param $properties array of extra properties, must be in allowed properties to be passed to ExactTarget.
+     * @return bool|\ET_Patch
+     * @throws \Exception
+     */
+    public function sendTriggered($email, $emailid, $sendClassification = "Default Commercial", $properties = []) {
+
+        $name               = uniqid();
+        $ts                 = new \ET_TriggeredSend();
+        $ts->authStub       = $this->fuel;
+
+        $ts->props = array(
+            'CustomerKey' => $name,
+            'Name' => $name,
+            'Description' => 'Lantern Test Triggered Send',
+            'Email' => array(
+                'ID' => $emailid
+            ),
+            'SendClassification' => array(
+                'CustomerKey' => $sendClassification
+            ),
+            'EmailSubject' => 'Testing Lantern Triggered Send',
+            'TriggeredSendStatus' => 'Active',
+            'RefreshContent' => 'true',
+            'SuppressTracking' => 'true',
+            'Priority' => 'High'
+        );
+
+        $allowed_properties = ['SenderProfile','DeliveryProfile'];
+        foreach ($properties as $key => $property) {
+            if (in_array($key, $allowed_properties)) {
+                $ts->props[$key] = $property;
+            }
+        }
+
+        $getRes = $ts->post();
+
+        if ($getRes->status == true) {
+            $patchTrig           = new \ET_TriggeredSend();
+            $patchTrig->authStub = $this->fuel;
+            $patchTrig->props    = array(
+                'CustomerKey' => $name,
+                'TriggeredSendStatus' => 'Active',
+                'RefreshContent' => 'true'
+            );
+
+            if (is_array($email)) {
+                $subscribers = [];
+                foreach ($email as $e) {
+                    $subscribers[] = [
+                        'EmailAddress' => $e,
+                        'SubscriberKey' => $e
+                    ];
+                }
+                $patchTrig->subscribers = $subscribers;
+            }
+            else {
+                $patchTrig->subscribers = [
+                    [
+                        'EmailAddress' => $email,
+                        'SubscriberKey' => $email,
+                    ]
+                ];
+            }
+
+
+            $patchResult = $patchTrig->patch();
+            $sendresult  = $patchTrig->send();
+            if ($patchResult->status == true && $sendresult->status == true) {
+                return $patchResult;
+            }
+            else {
+                Log::error("Error Sending Triggered Send", [$patchResult, $sendresult]);
+                return false;
+            }
+
+        }
+        else {
+            Log::error("Error (sendTriggered)", [$getRes]);
+            return false;
+        }
+
     }
 }
