@@ -1,6 +1,6 @@
 <?php
 
-namespace ariad\exacttargetlaravel;
+namespace ariad\exacttargetLaravel;
 
 use Illuminate\Support\ServiceProvider;
 

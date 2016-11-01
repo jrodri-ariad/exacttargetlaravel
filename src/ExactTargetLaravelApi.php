@@ -1,4 +1,4 @@
-<?php namespace ariad\exacttargetlaravel;
+<?php namespace ariad\exacttargetLaravel;
 
 use GuzzleHttp\Exception\BadResponseException as BadResponseException;
 use FuelSdkPhp\ET_DataExtension_Column as ET_DataExtension_Column;

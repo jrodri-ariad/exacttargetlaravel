@@ -6,7 +6,7 @@
  * Time: 1:08 PM
  */
 
-namespace ariad\exacttargetlaravel;
+namespace ariad\exacttargetLaravel;
 
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +29,7 @@ use ET_DataExtension_Column;
  * Note: Fuel API by default sets getSinceLastBatch true for Events.
  *
  * Class EtModel
- * @package ariad\exacttargetlaravel
+ * @package ariad\exacttargetLaravel
  */
 class EtModel extends LaravelEtApi {
 
