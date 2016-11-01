@@ -1,8 +1,8 @@
 <?php
 
-namespace digitaladditive\ExactTargetLaravel\Test;
+namespace ariad\exacttargetlaravel\Test;
 
-use digitaladditive\ExactTargetLaravel\ExactTargetLaravelApi as ExactTargetLaravelApi;
+use ariad\exacttargetlaravel\ExactTargetLaravelApi as ExactTargetLaravelApi;
 
 class ExactTargetLaravelTests extends \PHPUnit_Framework_TestCase
 {
