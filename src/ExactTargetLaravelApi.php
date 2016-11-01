@@ -364,11 +364,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
     {
         $upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataevents/key:'.$deKey.'/rows/'.$primaryKeyName.':'.$primaryKeyValue;
 
-        if (is_array($data)) {
-            $data = $this->it_serializes_data($data);
-        }
+        $values = ["values" => $data];
 
-        $request['body'] = $data;
+        $request['body'] = json_encode($values);
 
         $request['headers'] = [
             'Content-Type' => 'application/json',
