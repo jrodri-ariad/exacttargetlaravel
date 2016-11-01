@@ -1,6 +1,6 @@
 <?php
 
-namespace digitaladditive\ExactTargetLaravel;
+namespace ariad\exacttargetLaravel;
 
 trait SerializeDataTrait {
 
