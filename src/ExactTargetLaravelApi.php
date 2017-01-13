@@ -231,13 +231,17 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 *
 	 * @return array
 	 */
-	public function getDeColumns($deName) {
+	public function getDeColumns($deName, $BusinessUnit=false) {
 
 		//Get all Data Extensions Columns filter by specific DE
 
 		$this->fuelDeColumn->authStub = $this->fuel;
 
 		$this->fuelDeColumn->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals', 'Value' => $deName);
+
+        if ($BusinessUnit) {
+            $this->fuelDeColumn->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+        }
 
 		$getResult = $this->fuelDeColumn->get();
 
