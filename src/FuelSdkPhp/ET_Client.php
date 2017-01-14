@@ -595,7 +595,6 @@ class ET_Get extends ET_Constructor {
 				}
 			}
 		}
-
 		if (isAssoc($props)) {
 			$retrieveProps = array();
 			foreach ($props as $key => $value) {

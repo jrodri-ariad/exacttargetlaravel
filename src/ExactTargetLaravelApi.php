@@ -857,7 +857,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	public function getDe($name, $BusinessUnit = false) {
 		$this->fuelDext->authStub = $this->fuel;
 
-		$this->fuelDext->props = array('Client.ID', 'CustomerKey', 'Name', 'CategoryID');
+		// $this->fuelDext->props = array('Client.ID', 'CustomerKey', 'Name', 'CategoryID');
 
 		$this->fuelDext->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals', 'Value' => $name);
 
