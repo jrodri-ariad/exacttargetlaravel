@@ -595,7 +595,6 @@ class ET_Get extends ET_Constructor {
 				}
 			}
 		}
-
 		if (isAssoc($props)) {
 			$retrieveProps = array();
 			foreach ($props as $key => $value) {
@@ -1577,8 +1576,7 @@ class ET_DataExtension_Column extends ET_GetSupport {
 	public function get() {
 		$fixCustomerKey = false;
 
-		if ($this->filter && array_key_exists('Property',
-														  $this->filter) && $this->filter['Property'] == "CustomerKey"
+		if ($this->filter && array_key_exists('Property', $this->filter) && $this->filter['Property'] == "CustomerKey"
 		) {
 			$this->filter['Property'] = "DataExtension.CustomerKey";
 			$fixCustomerKey           = true;
