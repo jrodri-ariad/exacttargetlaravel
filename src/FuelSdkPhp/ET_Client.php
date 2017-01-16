@@ -2237,6 +2237,9 @@ function restDelete($url) {
 }
 
 function isAssoc($array) {
+	if (! is_array($array)) {
+		return false;
+	}
 	return ($array !== array_values($array));
 }
 
