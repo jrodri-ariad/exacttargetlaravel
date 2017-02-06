@@ -15,6 +15,7 @@ use FuelSdkPhp\ET_Portfolio;
 use FuelSdkPhp\ET_QueryDefinition;
 use FuelSdkPhp\ET_Role;
 use FuelSdkPhp\ET_SenderProfile;
+use FuelSdkPhp\ET_Template;
 use FuelSdkPhp\ET_User;
 use GuzzleHttp\Exception\BadResponseException as BadResponseException;
 use FuelSdkPhp\ET_DataExtension_Column as ET_DataExtension_Column;
@@ -236,20 +237,19 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		//Get all Data Extensions Columns filter by specific DE
 
 		$this->fuelDeColumn->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$this->fuelDeColumn->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
 
 		$this->fuelDeColumn->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals', 'Value' => $deName);
-
-        if ($BusinessUnit) {
-            $this->fuelDeColumn->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
-        }
 
 		$getResult = $this->fuelDeColumn->get();
 
 		if ($getResult->status == true) {
-			return $getResult->results;
+			return $getResult;
 		}
 
-		return print 'Message: ' . $getResult->message . "\n";
+		return $getResult;
 	}
 
 	public function getObjProps($obj) {
@@ -277,6 +277,19 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		return $obj->get();
 	}
 
+	public function getRole($customer_key, $props = false) {
+		$obj           = new ET_Role();
+		$obj->authStub = $this->fuel;
+
+		if ($props) {
+			$obj->props = $props;
+		}
+
+		$obj->filter = ['Property' => 'Name', 'SimpleOperator' => 'equals', 'Value' => $customer_key];
+
+		return $obj->get();
+	}
+
 	public function getAccount($filter = false) {
 		$this->fuelAccount->authStub = $this->fuel;
 
@@ -288,17 +301,11 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 		$getResult = $this->fuelAccount->get();
 		if ($getResult->status) {
-			$more[] = $getResult->results;
-			while ($getResult->moreResults) {
-				$getResult = $this->fuelAccount->GetMoreResults();
-				$more[]    = $getResult->results;
-			}
-
-			return $more;
+			return $getResult;
 		}
 	}
 
-	public function getAccountUsers() {
+	public function getAccountUsers($props = false) {
 		$obj           = new ET_AccountUser();
 		$obj->authStub = $this->fuel;
 
@@ -361,14 +368,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 		$getResult = $this->fuelFolder->get();
 		if ($getResult->status) {
-			$more[] = $getResult->results;
-			while ($getResult->moreResults) {
-				$getResult = $this->fuelAccount->GetMoreResults();
-				$more[]    = $getResult->results;
-			}
-
-			return $more;
+			return $getResult;
 		}
+		return $getResult;
 	}
 
 	public function createFolder($BusinessUnit = false, $props) {
@@ -819,22 +821,15 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	}
 
 	/**
-	 * Gets all the existing Data Extensions
-	 *
+	 * Returns all Data Extension Definitions from SFMC
+	 * @param bool $BusinessUnit [optional] Client ID
+	 * @return array|bool Raw data from SFMC
 	 */
 	public function getDes($BusinessUnit = false) {
 		$this->fuelDext->authStub = $this->fuel;
 
-		//dd($this->fuelDext->authStub);
-//        $this->fuelDext->props = array(
-//            'Client.ID',
-//            'CustomerKey',
-//            'Name'
-//        );
-
 		if ($BusinessUnit) {
 			$this->fuelDext->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
-			//$this->fuelDext->filter = array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit);
 		}
 		try {
 			$getRes = $this->fuelDext->get();
@@ -845,30 +840,27 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			return false;
 		}
 
-		return compact('getRes');
+		return $getRes;
 
 	}
 
-
 	/**
-	 * Gets Data Extension
-	 *
+	 * Returns a specific Data Extension Definition identified by CustomerKey from SFMC
+	 * @param $name
+	 * @param bool $BusinessUnit [optional] Client ID
+	 * @return array|bool Raw data from SFMC
 	 */
 	public function getDe($name, $BusinessUnit = false) {
 		$this->fuelDext->authStub = $this->fuel;
 
-		// $this->fuelDext->props = array('Client.ID', 'CustomerKey', 'Name', 'CategoryID');
+		$this->fuelDext->props = array('Client.ID', 'CustomerKey', 'Name', 'CategoryID');
 
 		$this->fuelDext->filter = array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals', 'Value' => $name);
 
 		if ($BusinessUnit) {
 			//define Business Unit ID (mid)
 			$this->fuelDext->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
-//            $this->fuelDext->filter = array(
-//                'LeftOperand' => array('Property' => 'CustomerKey', 'SimpleOperator' => 'equals','Value' => $name),
-//                'LogicalOperator' => 'AND',
-//                'RightOperand' => array('Property' => 'Client.ID', 'SimpleOperator' => 'equals','Value' => $BusinessUnit)
-//            );
+
 		}
 
 		try {
@@ -880,10 +872,37 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			return false;
 		}
 
-		return compact('getRes');
+		return $getRes;
 
 	}
 
+	/**
+	 * Request DataExtension Data from SFMC
+	 * @param String $name the Name of the Data Extension
+	 * @param Array $columns the Columns to import
+	 * @param bool $BusinessUnit [optional] Client ID
+	 * @return ET_Get Raw results from ExactTarget
+	 */
+	public function getDataExtensionData($name, $columns, $BusinessUnit=false) {
+		$obj = new ET_DataExtension_Row();
+
+		$obj->authStub = $this->fuel;
+
+		$obj->Name = $name;
+		$obj->props = $columns;
+
+		if ($BusinessUnit) {
+			//define Business Unit ID (mid)
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		return $obj->get();
+	}
+
+	/**
+	 * @param bool $BusinessUnit
+	 * @param bool $CustomerKey
+	 * @return array|ET_Get
+	 */
 	public function getGroups($BusinessUnit = false, $CustomerKey = false) {
 
 		$obj = new ET_Group();
@@ -1268,6 +1287,33 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 
 	}
+
+	public function retrieveTemplates($name = null, $BusinessUnit = false) {
+		$email           = new ET_Template();
+		$email->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$email->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		if ($name) {
+			$email->filter = array(
+				 'Property' => 'CustomerKey',
+				 'SimpleOperator' => 'equals',
+				 'Value' => $name
+			);
+		}
+
+		$getRes = $email->get();
+		if ($getRes->status == true) {
+			return $getRes;
+		}
+		else {
+
+			Log::error('Error retrieving ET_Template. Message: ' . $getRes->message);
+			return false;
+		}
+
+	}
+
 
 	public function deleteEmails($id) {
 		$email           = new \ET_Email();
