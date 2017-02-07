@@ -2066,6 +2066,33 @@ class ET_QueryDefinition extends ET_CUDSupport {
 	}
 }
 
+/**
+ * Class ET_ExtractDefinition
+ * Perform Data Extract Activities
+ * @package FuelSdkPhp
+ */
+class ET_ExtractDefinition extends ET_GetSupport {
+	function __construct() {
+		$this->obj = "ExtractDefinition";
+	}
+
+	function send() {
+		$originalProps = $this->props;
+		$response      = new ET_Perform($this->authStub, $this->obj, 'start', $this->props);
+		if ($response->status) {
+			$this->lastTaskID = $response->results[0]->Task->ID;
+		}
+		$this->props = $originalProps;
+
+		return $response;
+	}
+
+}
+
+/**
+ * Class ET_ExtractDescription
+ * @package FuelSdkPhp
+ */
 class ET_ExtractDescription extends ET_CUDSupport {
 	function __construct() {
 		$this->obj = "ExtractDescription";
