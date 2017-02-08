@@ -3,6 +3,7 @@
 use FuelSdkPhp\ET_Automation;
 use FuelSdkPhp\ET_BusinessUnit;
 use FuelSdkPhp\ET_ContentArea;
+use FuelSdkPhp\ET_ExtractDefinition;
 use FuelSdkPhp\ET_ExtractDescription;
 use FuelSdkPhp\ET_FilterDefinition;
 use FuelSdkPhp\ET_FTPLocation;
@@ -944,7 +945,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 	}
 
-	public function getQueryDefinitions($BusinessUnit = false, $folder_name = false) {
+	public function getQueryDefinitions($BusinessUnit = false, $name = false) {
 
 		$obj = new ET_QueryDefinition();
 		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
@@ -954,23 +955,13 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
 		}
 
-//		if ($folder_name) {
-//			$obj->filter = array(
-//				 'Property' => $property,
-//				 'SimpleOperator' => 'equals',
-//				 'Value' => $folder_name
-//			);
-//		}
-
 		$r = $obj->get();
 		if ($r->status == true) {
 			return $r;
 		}
-
-
 	}
 
-	public function getExtractDescription($BusinessUnit = false, $folder_name = false) {
+	public function getExtractDescription($BusinessUnit = false, $name = false) {
 
 		$obj = new ET_ExtractDescription();
 		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
@@ -980,21 +971,46 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
 		}
 
-//		if ($folder_name) {
-//			$obj->filter = array(
-//				 'Property' => $property,
-//				 'SimpleOperator' => 'equals',
-//				 'Value' => $folder_name
-//			);
-//		}
+		$r = $obj->get();
+		if ($r->status == true) {
+			return $r;
+		}
+		return ['failed' => $r];
+	}
+
+
+	public function getExtractDefinition($BusinessUnit = false, $name = false) {
+
+		$obj = new ET_ExtractDefinition();
+		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
+
+		$obj->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
 
 		$r = $obj->get();
 		if ($r->status == true) {
 			return $r;
 		}
-
 		return ['failed' => $r];
+	}
 
+	public function getDataExtractActivity($BusinessUnit = false, $name = false) {
+
+		$obj = new ET_ExtractDefinition();
+		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
+
+		$obj->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+
+		$r = $obj->get();
+		if ($r->status == true) {
+			return $r;
+		}
+		return ['failed' => $r];
 	}
 
 	/**

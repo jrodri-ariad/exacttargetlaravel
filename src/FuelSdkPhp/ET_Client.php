@@ -2099,6 +2099,16 @@ class ET_ExtractDescription extends ET_CUDSupport {
 	}
 }
 
+/**
+ * Perform a Data Extract Activity
+ * Class ET_DataExtractActivity
+ * @package FuelSdkPhp
+ */
+class ET_DataExtractActivity extends ET_CUDSupport {
+	function __construct() {
+		$this->obj = "DataExtractActivity";
+	}
+}
 
 function restGet($url) {
 	$ch      = curl_init();
