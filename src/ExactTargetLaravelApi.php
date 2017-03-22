@@ -3,6 +3,8 @@
 use FuelSdkPhp\ET_Automation;
 use FuelSdkPhp\ET_BusinessUnit;
 use FuelSdkPhp\ET_ContentArea;
+use FuelSdkPhp\ET_DataExtensionTemplate;
+use FuelSdkPhp\ET_DataExtractActivity;
 use FuelSdkPhp\ET_ExtractDefinition;
 use FuelSdkPhp\ET_ExtractDescription;
 use FuelSdkPhp\ET_FilterDefinition;
@@ -382,9 +384,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
 		}
 
-		if ($props['ParentFolder.ID']) {
-			$props['ParentFolder'] = (object)['ID' => $props['ParentFolder.ID'], 'IDSpecified' => true];
-			unset($props['ParentFolder.ID']);
+		if (array_key_exists('ParentFolder.ID', $props)) {
+			$props['ParentFolder'] = (object)['ID' => $props['ParentFolder.ID'], 'IDSpecified' => true, 'ContentType' => $props['ParentFolder_ContentType']];
+			unset($props['ParentFolder.ID'],$props['ParentFolder_ContentType']);
 		}
 
 		$obj->props = $props;
@@ -699,7 +701,8 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 */
 	public function createDataExtension($props) {
 		$this->fuelDext->authStub = $this->fuel;
-
+		$this->fuelDext->props = [];
+		unset($this->fuelDext->filters);
 		$props_available       = [
 			 'CategoryID',
 			 'Client',
@@ -733,8 +736,11 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 		$this->fuelDext->columns = [];
 
-		foreach ($props['Columns'] as $key => $val) {
-			$this->fuelDext->columns[] = $val;
+		if (array_key_exists('Columns', $props)) {
+			// don't have Columns if there's a Template specified
+			foreach ($props['Columns'] as $key => $val) {
+				$this->fuelDext->columns[] = $val;
+			}
 		}
 		try {
 			$getRes = $this->fuelDext->post();
@@ -899,6 +905,17 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		return $obj->get();
 	}
 
+	public function getDataExtensionTemplate($BusinessUnit = false) {
+		$obj = new ET_DataExtensionTemplate();
+
+		$obj->authStub = $this->fuel;
+
+		if ($BusinessUnit) {
+			//define Business Unit ID (mid)
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		return $obj->get();	}
+
 	/**
 	 * @param bool $BusinessUnit
 	 * @param bool $CustomerKey
@@ -945,7 +962,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 
 	}
 
-	public function getQueryDefinitions($BusinessUnit = false, $name = false) {
+	public function getQueryDefinitions($BusinessUnit = false, $folder_name = false) {
 
 		$obj = new ET_QueryDefinition();
 		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
@@ -955,12 +972,28 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
 		}
 
+//		if ($folder_name) {
+//			$obj->filter = array(
+//				 'Property' => $property,
+//				 'SimpleOperator' => 'equals',
+//				 'Value' => $folder_name
+//			);
+//		}
+
 		$r = $obj->get();
 		if ($r->status == true) {
 			return $r;
 		}
+
+
 	}
 
+	/**
+	 * retrieve a Extract Description from SFMC
+	 * @param bool $BusinessUnit
+	 * @param bool $name
+	 * @return array|ET_Get
+	 */
 	public function getExtractDescription($BusinessUnit = false, $name = false) {
 
 		$obj = new ET_ExtractDescription();
@@ -978,7 +1011,12 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		return ['failed' => $r];
 	}
 
-
+	/**
+	 * retrieve an Extract Definition from SFMC
+	 * @param bool $BusinessUnit
+	 * @param bool $name
+	 * @return array
+	 */
 	public function getExtractDefinition($BusinessUnit = false, $name = false) {
 
 		$obj = new ET_ExtractDefinition();
@@ -996,9 +1034,15 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		return ['failed' => $r];
 	}
 
+	/**
+	 * retrieve or run an Extract Activity
+	 * @param bool $BusinessUnit
+	 * @param bool $name
+	 * @return array
+	 */
 	public function getDataExtractActivity($BusinessUnit = false, $name = false) {
 
-		$obj = new ET_ExtractDefinition();
+		$obj = new ET_DataExtractActivity();
 		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
 
 		$obj->authStub = $this->fuel;
@@ -1012,7 +1056,6 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 		return ['failed' => $r];
 	}
-
 	/**
 	 * ET_Client.ET_Import follows a different pattern than the API Objects
 	 * @param bool $BusinessUnit

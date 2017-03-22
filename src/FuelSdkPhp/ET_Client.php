@@ -1711,6 +1711,12 @@ class ET_DataExtension_Row extends ET_CUDWithUpsertSupport {
 	}
 }
 
+class ET_DataExtensionTemplate extends ET_GetSupport {
+	function __construct() {
+		$this->obj = "DataExtensionTemplate";
+	}
+}
+
 class ET_Group extends ET_CUDSupport {
 	function __construct() {
 		$this->obj = "Group";
@@ -2109,6 +2115,7 @@ class ET_DataExtractActivity extends ET_CUDSupport {
 		$this->obj = "DataExtractActivity";
 	}
 }
+
 
 function restGet($url) {
 	$ch      = curl_init();
