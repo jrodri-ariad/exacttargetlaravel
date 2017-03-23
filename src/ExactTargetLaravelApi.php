@@ -591,7 +591,12 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 * /dataeventsasync/key:{key}/rows/{primaryKeys}
 	 */
 	public function asyncUpsertRow($primaryKeyName, $primaryKeyValue, $data, $deKey) {
-		$upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataeventsasync/key:' . $deKey . '/rows/' . $primaryKeyName . ':' . $primaryKeyValue;
+		if(count($data) > 1) {
+			$upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataeventsasync/key:' . $deKey . '/rowset';
+		}
+		else {
+			$upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataeventsasync/key:' . $deKey . '/rows/' . $primaryKeyName .':'. $primaryKeyValue;
+		}
 
 		$request['headers'] = [
 			 'Content-Type' => 'application/json',
@@ -618,6 +623,59 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 					 echo $e->getMessage() . "\n";
 					 echo $e->getRequest()->getMethod();
 				 }
+			);
+			$promise->wait();
+		}
+		catch (BadResponseException $exception) {
+			//spit out exception if curl fails or server is angry
+			$exc = $exception->getResponse()->getBody(true);
+			echo "Oh No! Something went wrong! " . $exc;
+		}
+
+		return compact('promise');
+	}
+
+	/**
+	 * PUT
+	 *
+	 * Asynchronously upserts a data extension row by key.
+	 *
+	 * these async methods need testing when / if we have a need for async requests (which we will)
+	 *
+	 * /dataeventsasync/key:{key}/rows/{primaryKeys}
+	 */
+	public function asyncUpsertBatch($data, $customer_key) {
+		if(count($data) > 1) {
+			$request['body'] = json_encode($data);
+			$upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataevents/' . $customer_key . '/rowset';
+		}
+		else {
+			$keys = $data[0]['keys'];
+			$request['body'] = json_encode(['values' => $data[0]['values']]);
+			$upsertUri = 'https://www.exacttargetapis.com/hub/v1/dataevents/key:' . $customer_key . '/rows/' . key($keys) .':'. current($keys);
+		}
+
+		$request['headers'] = [
+			'Content-Type' => 'application/json',
+			'Accept' => 'application/json',
+			'Authorization' => 'Bearer ' . $this->accessToken['response']->accessToken
+		];
+
+		//$request['body'] = $data;
+
+		try {
+			//post upsert
+			dump($request);
+			$promise = $this->client->postAsync($upsertUri, $request);
+			$promise->then(
+			//chain logic to the response (can fire from other classes or set booleans)
+				function (ResponseInterface $res) {
+					echo $res->getStatusCode() . "\n";
+				},
+				function (RequestException $e) {
+					echo $e->getMessage() . "\n";
+					echo $e->getRequest()->getMethod();
+				}
 			);
 			$promise->wait();
 		}
