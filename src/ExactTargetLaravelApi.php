@@ -1170,13 +1170,28 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		];
 		$email->props = array_merge($email->props, $props);
 		$getRes = $email->post();
-		if ($getRes->status == true) {
-			return $getRes;
-		}
-		else {
+		if ($getRes->status != true) {
 			Log::error('Error creating ET email(createEmail). Message: ', [$getRes]);
-			return $getRes;
 		}
+		return $getRes;
+	}
+
+	public function updateEmail($name, $subject, $html, $props = []) {
+		$email           = new ET_Email();
+		$email->authStub = $this->fuel;
+		$customer_key = uniqid(substr($name, 0, 10) . '::');
+		$email->props = [
+			'CustomerKey' => $customer_key,
+			'Name'        => $name,
+			'Subject'     => $subject,
+			'HTMLBody'    => $html
+		];
+		$email->props = array_merge($email->props, $props);
+		$getRes = $email->patch();
+		if ($getRes->status != true) {
+			Log::error('Error updating ET email(createEmail). Message: ', [$getRes]);
+		}
+		return $getRes;
 	}
 
 	public function retrieveEmails($name = null, $BusinessUnit = false) {
@@ -1230,6 +1245,14 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		$template->authStub = $this->fuel;
 		$template->props = $props;
 		$results = $template->post();
+		return $results;
+	}
+
+	public function updateTempalte($props) {
+		$template           = new ET_Template();
+		$template->authStub = $this->fuel;
+		$template->props = $props;
+		$results = $template->patch();
 		return $results;
 	}
 
@@ -1312,6 +1335,13 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		$obj->authStub = $this->fuel;
 		$obj->props = $props;
 		return $obj->post();
+	}
+
+	public function updateContentAreas($props) {
+		$obj           = new ET_ContentArea();
+		$obj->authStub = $this->fuel;
+		$obj->props = $props;
+		return $obj->patch();
 	}
 
 	public function deleteSendDefinition($name) {
