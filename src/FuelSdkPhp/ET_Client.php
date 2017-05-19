@@ -1,6 +1,7 @@
 <?php
 namespace FuelSdkPhp;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 
 require(__DIR__ . '/soap-wsse.php');
 require(__DIR__ . '/JWT.php');
@@ -143,7 +144,7 @@ class ET_Client extends \SoapClient {
 	function CreateWSDL($wsdlLoc) {
 		try {
 			$getNewWSDL = true;
-			$remoteTS   = $this->GetLastModifiedDate($wsdlLoc);
+			$remoteTS = $this->GetLastModifiedDate($wsdlLoc);
 			if (file_exists($this->xmlLoc)) {
 				$localTS = filemtime($this->xmlLoc);
 				if ($remoteTS <= $localTS) {
@@ -186,7 +187,7 @@ class ET_Client extends \SoapClient {
 			error_log(str_replace($this->getInternalAuthToken($this->tenantKey), "REMOVED", $content));
 		}
 		$headers = ["Content-Type: text/xml", "SOAPAction: " . $saction, "User-Agent: " . getSDKVersion()];
-		$ch      = curl_init();
+		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $location);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
@@ -1649,7 +1650,13 @@ class ET_Import extends ET_CUDSupport {
 				$this->props['DestinationObject'] = new \SoapVar($this->props['DestinationObject'], SOAP_ENC_OBJECT,
 				                                                 'List', "http://exacttarget.com/wsdl/partnerAPI");
 			}
+			elseif (array_key_exists('CustomerKey', $this->props['DestinationObject'])) {
+				$this->props['DestinationObject']->ObjectID = null;
+				$this->props['DestinationObject'] = new \SoapVar($this->props['DestinationObject'], SOAP_ENC_OBJECT,
+				                                                 'DataExtension', "http://exacttarget.com/wsdl/partnerAPI");
+			}
 		}
+		dump(['post ET_Import' => $this->props]);
 		$obj         = parent::post();
 		$this->props = $originalProp;
 		return $obj;
@@ -1657,10 +1664,12 @@ class ET_Import extends ET_CUDSupport {
 
 	function start() {
 		$originalProps = $this->props;
+		Log::debug('Importdefinition: ET_Perform import ', [$this->props]);
 		$response      = new ET_Perform($this->authStub, $this->obj, 'start', $this->props);
 		if ($response->status) {
 			$this->lastTaskID = $response->results[0]->Task->ID;
 		}
+
 		$this->props = $originalProps;
 		return $response;
 	}
@@ -1703,8 +1712,32 @@ class ET_Import extends ET_CUDSupport {
 	}
 }
 
-class ET_ImportDefinition extends ET_CUDSupport {
+class ET_ImportResultsSummary extends ET_GetSupport {
+	function __construct() {
+		$this->obj = 'ImportResultsSummary';
+	}
 }
+
+class ET_FileTransferActivity extends ET_GetSupport {
+	function __construct() {
+		$this->obj = "FileTransferActivity";
+	}
+
+	function get() {
+		throw new MethodNotAllowedException('File Transfers can only be performed, not retrieved.');
+	}
+
+	function transfer() {
+		$originalProps = $this->props;
+		$response      = new ET_Perform($this->authStub, $this->obj, 'start', $this->props);
+		if ($response->status) {
+			$this->lastTaskID = $response->results[0]->Task->ID;
+		}
+		$this->props = $originalProps;
+		return $response;
+	}
+}
+
 
 class ET_ProfileAttribute extends ET_BaseObject {
 	function __construct() {

@@ -8,11 +8,13 @@ use FuelSdkPhp\ET_DataExtensionTemplate;
 use FuelSdkPhp\ET_DataExtractActivity;
 use FuelSdkPhp\ET_ExtractDefinition;
 use FuelSdkPhp\ET_ExtractDescription;
+use FuelSdkPhp\ET_FileTransferActivity;
 use FuelSdkPhp\ET_FilterDefinition;
 use FuelSdkPhp\ET_FTPLocation;
 use FuelSdkPhp\ET_Get;
 use FuelSdkPhp\ET_Group;
 use FuelSdkPhp\ET_Import;
+use FuelSdkPhp\ET_ImportResultsSummary;
 use FuelSdkPhp\ET_Info;
 use FuelSdkPhp\ET_List;
 use FuelSdkPhp\ET_List_Subscriber;
@@ -311,7 +313,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		// $this->fuelFolder->props = ['Name','CustomerKey', 'ContentType'];
 		if ($name) {
 			$this->fuelFolder->filter = [
-				'Property'       => 'CustomerKey',
+				'Property'       => 'ContentType',
 				'SimpleOperator' => 'equals',
 				'Value'          => $name
 			];
@@ -723,14 +725,17 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 	}
 
-	public function getPortfolio($BusinessUnit = false, $props = false) {
+	public function getPortfolio($BusinessUnit = false, $props = false, $filter = false) {
 		$obj           = new ET_Portfolio();
 		$obj->authStub = $this->fuel;
 		if ($BusinessUnit) {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
 		}
 		if ($props) {
-			$this->props = $props;
+			$obj->props = $props;
+		}
+		if ($filter) {
+			$obj->filter = $filter;
 		}
 		return $obj->get();
 	}
@@ -824,11 +829,13 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 * @param bool $BusinessUnit [optional] Client ID
 	 * @return ET_Get Raw results from ExactTarget
 	 */
-	public function getDataExtensionData($name, $columns, $BusinessUnit = false) {
+	public function getDataExtensionData($name, $columns = null, $BusinessUnit = false) {
 		$obj = new ET_DataExtension_Row();
 		$obj->authStub = $this->fuel;
 		$obj->Name  = $name;
-		$obj->props = $columns;
+		if ($columns) {
+			$obj->props = $columns;
+		}
 		if ($BusinessUnit) {
 			//define Business Unit ID (mid)
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
@@ -1034,6 +1041,82 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 		$all_imports = $imports->get();
 		return $all_imports;
+	}
+
+	public function createImport($BusinessUnit, $props) {
+		$obj = new ET_Import();
+		$obj->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		$obj->props = $props;
+		return $obj->post();
+	}
+
+	public function transferFile($BusinessUnit, $CustomerKey) {
+		$obj = new ET_FileTransferActivity();
+		$obj->authStub = $this->fuel;
+
+		if ($BusinessUnit) {
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		$obj->props['CustomerKey'] = $CustomerKey;
+		$obj->props['ObjectID'] = null;
+		$obj->props['ModifiedDate'] = null;
+
+		return $obj->transfer();
+
+	}
+
+	public function ImportDefinitionCheckStatus($BusinessUnit, $ImportDefinitionCustomerKey, $import_action_id) {
+		$obj = new ET_ImportResultsSummary();
+		$obj->authStub = $this->fuel;
+		if ($BusinessUnit) {
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+
+		$filter1 = [
+			"Property"       => "ImportDefinitionCustomerKey",
+			"SimpleOperator" => "equals",
+			"Value"          => $ImportDefinitionCustomerKey
+		];
+		$filter2 = [
+			"Property"       => "TaskResultID",
+			"SimpleOperator" => "equals",
+			"Value"          => $import_action_id
+		];
+
+		$obj->filter = [
+			"LeftOperand" => $filter1,
+			"LogicalOperator" => "AND",
+			"RightOperand" => $filter2,
+		];
+
+		$obj->props = null;
+		return $obj->get();
+	}
+
+	/**
+	 * Implement SFMC `Perform` method on the ImportDefinition Object
+	 * @param $BusinessUnit
+	 * @param $filename
+	 * @param $DataExtension_CustomerKey
+	 */
+	public function importFile($BusinessUnit, $filename, $DataExtension_CustomerKey) {
+		$obj = new ET_Import();
+		$obj->authStub = $this->fuel;
+
+		if ($BusinessUnit) {
+			if (! property_exists($obj, 'authStub')) {
+				throw new \ErrorException('Fuel AuthStub not defined on the base object');
+			}
+			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		$obj->props['CustomerKey'] = $DataExtension_CustomerKey;
+		$obj->props['ObjectID'] = null;
+		$obj->props['ModifiedDate'] = null;
+		return $obj->start();
+
 	}
 
 	public function getAutomation($BusinessUnit, $CustomerKey = false) {

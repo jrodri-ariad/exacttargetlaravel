@@ -83,7 +83,8 @@ class Portfolio extends ExactTargetLaravelApi {
 		try {
 			ini_set("soap.wsdl_cache_enabled", "0");
 			$response = new ET_Post($this->fuel, $this->objType, $props);
-			if ($response->Status == true && count($response->results) && $response->results[0]->StatusCode == "OK") {
+			Log::debug('response: ', [$response]);
+			if ($response->status == true && count($response->results) && $response->results[0]->StatusCode == "OK") {
 				$acm                 = new AriadMediaMap();
 				$acm->src_client_id  = $src['business_unit'];
 				$acm->customer_key   = $response->results[0]->Object->CustomerKey;
