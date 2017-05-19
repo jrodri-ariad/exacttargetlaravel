@@ -143,7 +143,7 @@ class ET_Client extends \SoapClient {
 	function CreateWSDL($wsdlLoc) {
 		try {
 			$getNewWSDL = true;
-			$remoteTS = $this->GetLastModifiedDate($wsdlLoc);
+			$remoteTS   = $this->GetLastModifiedDate($wsdlLoc);
 			if (file_exists($this->xmlLoc)) {
 				$localTS = filemtime($this->xmlLoc);
 				if ($remoteTS <= $localTS) {
@@ -186,7 +186,7 @@ class ET_Client extends \SoapClient {
 			error_log(str_replace($this->getInternalAuthToken($this->tenantKey), "REMOVED", $content));
 		}
 		$headers = ["Content-Type: text/xml", "SOAPAction: " . $saction, "User-Agent: " . getSDKVersion()];
-		$ch = curl_init();
+		$ch      = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $location);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
@@ -559,6 +559,7 @@ class ET_Get extends ET_Constructor {
 		if ($objType == 'Automation') {
 			$retrieveRequest["Properties"][] = 'ProgramID';
 		}
+
 		if ($filter) {
 			if (array_key_exists("LogicalOperator", $filter)) {
 				$cfp                       = new \stdClass();
@@ -578,9 +579,19 @@ class ET_Get extends ET_Constructor {
 		if ($getSinceLastBatch) {
 			$retrieveRequest["RetrieveAllSinceLastBatch"] = true;
 		}
+
+//		if ($objType == 'Email') {
+//			// $retrieveRequest["Properties"][] = 'Template';
+//
+//			Log::debug('Get Email Properties: ', [$retrieveRequest["Properties"]]);
+//		}
 		$request["RetrieveRequest"] = $retrieveRequest;
 		$rrm["RetrieveRequestMsg"]  = $request;
-		$return = $authStub->__soapCall("Retrieve", $rrm, null, null, $out_header);
+
+		$return                     = $authStub->__soapCall("Retrieve", $rrm, null, null, $out_header);
+//		Log::debug('Soap Request: ', [$authStub->__getLastRequest()]);
+//		Log::debug('Soap Response: ', [$authStub->__getLastResponse()]);
+
 		parent::__construct($return, $authStub->__getLastResponseHTTPCode());
 		if ($this->status) {
 			if (property_exists($return, "Results")) {
@@ -613,9 +624,9 @@ class ET_Get extends ET_Constructor {
 class ET_Continue extends ET_Constructor {
 	function __construct($authStub, $request_id) {
 		$authStub->refreshToken();
-		$rrm             = [];
-		$request         = [];
-		$retrieveRequest = [];
+		$rrm                                = [];
+		$request                            = [];
+		$retrieveRequest                    = [];
 		$retrieveRequest["ContinueRequest"] = $request_id;
 		$retrieveRequest["ObjectType"]      = null;
 		if (property_exists($authStub, 'BusinessUnit')) {
@@ -666,13 +677,13 @@ class ET_Info extends ET_Constructor {
 	 */
 	function __construct($authStub, $objType, $extended = false) {
 		$authStub->refreshToken();
-		$drm             = [];
-		$request         = [];
-		$describeRequest = [];
+		$drm                                        = [];
+		$request                                    = [];
+		$describeRequest                            = [];
 		$describeRequest["ObjectDefinitionRequest"] = ["ObjectType" => $objType];
-		$request["DescribeRequests"] = $describeRequest;
-		$drm["DefinitionRequestMsg"] = $request;
-		$return = $authStub->__soapCall("Describe", $drm, null, null, $out_header);
+		$request["DescribeRequests"]                = $describeRequest;
+		$drm["DefinitionRequestMsg"]                = $request;
+		$return                                     = $authStub->__soapCall("Describe", $drm, null, null, $out_header);
 		parent::__construct($return, $authStub->__getLastResponseHTTPCode());
 		if ($this->status) {
 			if (property_exists($return, 'ObjectDefinition') && property_exists($return->ObjectDefinition, "Properties")) {
@@ -751,9 +762,9 @@ class ET_Post extends ET_Constructor {
 class ET_Patch extends ET_Constructor {
 	function __construct($authStub, $objType, $props, $upsert = false) {
 		$authStub->refreshToken();
-		$cr      = [];
-		$objects = [];
-		$object  = $props;
+		$cr                 = [];
+		$objects            = [];
+		$object             = $props;
 		$objects["Objects"] = new \SoapVar($props, SOAP_ENC_OBJECT, $objType, "http://exacttarget.com/wsdl/partnerAPI");
 		if ($upsert) {
 			$objects["Options"] = [
@@ -769,7 +780,7 @@ class ET_Patch extends ET_Constructor {
 			$objects["Options"] = "";
 		}
 		$cr["UpdateRequest"] = $objects;
-		$return = $authStub->__soapCall("Update", $cr, null, null, $out_header);
+		$return              = $authStub->__soapCall("Update", $cr, null, null, $out_header);
 		parent::__construct($return, $authStub->__getLastResponseHTTPCode());
 		if ($this->status) {
 			if (property_exists($return, "Results")) {
@@ -794,13 +805,13 @@ class ET_Patch extends ET_Constructor {
 class ET_Delete extends ET_Constructor {
 	function __construct($authStub, $objType, $props) {
 		$authStub->refreshToken();
-		$cr      = [];
-		$objects = [];
-		$object  = $props;
+		$cr                  = [];
+		$objects             = [];
+		$object              = $props;
 		$objects["Objects"]  = new \SoapVar($props, SOAP_ENC_OBJECT, $objType, "http://exacttarget.com/wsdl/partnerAPI");
 		$objects["Options"]  = "";
 		$cr["DeleteRequest"] = $objects;
-		$return = $authStub->__soapCall("Delete", $cr, null, null, $out_header);
+		$return              = $authStub->__soapCall("Delete", $cr, null, null, $out_header);
 		parent::__construct($return, $authStub->__getLastResponseHTTPCode());
 		if ($this->status) {
 			if (property_exists($return, "Results")) {
@@ -870,8 +881,8 @@ class ET_Perform extends ET_Constructor {
 		$performRequest['Definitions']   = [];
 		$performRequest['Definitions'][] = new \SoapVar($props, SOAP_ENC_OBJECT, $objType,
 		                                                "http://exacttarget.com/wsdl/partnerAPI");
-		$perform['PerformRequestMsg'] = $performRequest;
-		$return                       = $authStub->__soapCall("Perform", $perform, null, null, $out_header);
+		$perform['PerformRequestMsg']    = $performRequest;
+		$return                          = $authStub->__soapCall("Perform", $perform, null, null, $out_header);
 		parent::__construct($return, $authStub->__getLastResponseHTTPCode());
 		if ($this->status) {
 			if (property_exists($return->Results, "Result")) {
@@ -925,7 +936,7 @@ class ET_GetSupportRest extends ET_BaseObjectRest {
 		if (property_exists($response->results, 'page')) {
 			$this->lastPageNumber = $response->results->page;
 			$pageSize             = $response->results->pageSize;
-			$count = null;
+			$count                = null;
 			if (property_exists($response->results, 'count')) {
 				$count = $response->results->count;
 			}
@@ -954,7 +965,7 @@ class ET_GetSupportRest extends ET_BaseObjectRest {
 			$this->props = [];
 		}
 		$this->props['$page'] = $this->lastPageNumber + 1;
-		$response = $this->get();
+		$response             = $this->get();
 		if ($removePageFromProps) {
 			unset($this->props['$page']);
 		}
@@ -1121,7 +1132,7 @@ class ET_Message_Guide extends ET_CUDSupportRest {
 
 	function convert() {
 		$completeURL = "https://www.exacttargetapis.com/guide/v1/messages/convert?access_token=" . $this->authStub->getAuthToken();
-		$response = new ET_PostRest($this->authStub, $completeURL, $this->props);
+		$response    = new ET_PostRest($this->authStub, $completeURL, $this->props);
 		return $response;
 	}
 
@@ -1171,9 +1182,9 @@ class ET_Asset extends ET_CUDSupportRest {
 
 	public function upload() {
 		$completeURL = "https://www.exacttargetapis.com/guide/v1/contentItems/portfolio/fileupload?access_token=" . $this->authStub->getAuthToken();
-		$post = ['file_contents' => '@' . $this->attrs['filePath']];
-		$ch = curl_init();
-		$headers = ["User-Agent: " . getSDKVersion()];
+		$post        = ['file_contents' => '@' . $this->attrs['filePath']];
+		$ch          = curl_init();
+		$headers     = ["User-Agent: " . getSDKVersion()];
 		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($ch, CURLOPT_URL, $completeURL);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -1372,7 +1383,7 @@ class ET_DataExtension extends ET_CUDSupport {
 			}
 			$this->props = $newProps;
 		}
-		$response = parent::post();
+		$response    = parent::post();
 		$this->props = $originalProps;
 		return $response;
 	}
@@ -1435,9 +1446,9 @@ class ET_DataExtension_Row extends ET_CUDWithUpsertSupport {
 		}
 		$overrideProps['CustomerKey'] = $this->CustomerKey;
 		$overrideProps['Properties']  = ["Property" => $fields];
-		$this->props = $overrideProps;
-		$response    = parent::post();
-		$this->props = $originalProps;
+		$this->props                  = $overrideProps;
+		$response                     = parent::post();
+		$this->props                  = $originalProps;
 		return $response;
 	}
 
@@ -1451,9 +1462,9 @@ class ET_DataExtension_Row extends ET_CUDWithUpsertSupport {
 		}
 		$overrideProps['CustomerKey'] = $this->CustomerKey;
 		$overrideProps['Properties']  = ["Property" => $fields];
-		$this->props = $overrideProps;
-		$response    = parent::patch();
-		$this->props = $originalProps;
+		$this->props                  = $overrideProps;
+		$response                     = parent::patch();
+		$this->props                  = $originalProps;
 		return $response;
 	}
 
@@ -1467,9 +1478,9 @@ class ET_DataExtension_Row extends ET_CUDWithUpsertSupport {
 		}
 		$overrideProps['CustomerKey'] = $this->CustomerKey;
 		$overrideProps['Keys']        = ["Key" => $fields];
-		$this->props = $overrideProps;
-		$response    = parent::delete();
-		$this->props = $originalProps;
+		$this->props                  = $overrideProps;
+		$response                     = parent::delete();
+		$this->props                  = $originalProps;
 		return $response;
 	}
 
@@ -2001,7 +2012,7 @@ function restPut($url, $content) {
 }
 
 function restDelete($url) {
-	$ch = curl_init();
+	$ch      = curl_init();
 	$headers = ["User-Agent: " . getSDKVersion()];
 	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 	// Uses the URL passed in that is specific to the API used
@@ -2013,8 +2024,8 @@ function restDelete($url) {
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 	// Set CustomRequest up for Delete
 	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
-	$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-	$outputJSON = curl_exec($ch);
+	$http_status              = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+	$outputJSON               = curl_exec($ch);
 	$responseObject           = new \stdClass();
 	$responseObject->body     = $outputJSON;
 	$responseObject->httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

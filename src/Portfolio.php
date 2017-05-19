@@ -5,15 +5,16 @@
  * Date: 2017-03-24
  * Time: 11:20 AM
  */
+
 namespace ariad\exacttargetLaravel;
 
+use App\Models\AriadMediaMap;
 use FuelSdkPhp\ET_Client;
 use FuelSdkPhp\ET_Post;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 
 class Portfolio extends ExactTargetLaravelApi {
-
 	private $et_config;
 	/**
 	 * @var FTP Connection credentials
@@ -22,7 +23,7 @@ class Portfolio extends ExactTargetLaravelApi {
 	private $ftp_username;
 	private $ftp_password;
 	private $ftp_connection;
-	private $errors = [];
+	private $errors  = [];
 	private $ftp_image_name;
 	private $objType = 'Portfolio';
 
@@ -33,10 +34,8 @@ class Portfolio extends ExactTargetLaravelApi {
 	 * @param $pass
 	 */
 	public function __construct($et_config, $host = false, $user = false, $pass = false) {
-
 		$this->et_config = $et_config;
 		parent::__construct();
-
 		$this->ftp_host     = $host;
 		$this->ftp_username = $user;
 		$this->ftp_password = $pass;
@@ -63,7 +62,6 @@ class Portfolio extends ExactTargetLaravelApi {
 		Config::set('remote.connections.sfmc.password', $this->ftp_password);
 		Log::debug('putting ', [$localFilePath . $filename, $filename]);
 		$ssh = \SSH::into('sfmc')->put($localFilePath . $filename, '/Import/' . $filename);
-
 		$this->ftp_image_name = $filename;
 		return true;
 	}
@@ -73,8 +71,7 @@ class Portfolio extends ExactTargetLaravelApi {
 	 * @param Array $props as outlined by SFMC Portfolio Object - Create a new Portfolio Object from Website
 	 * @return bool|\FuelSdkPhp\ET_Post
 	 */
-	public function import_as_portfolio($props) {
-
+	public function import_as_portfolio($props, $src) {
 		if (array_key_exists('URN', $props)) {
 			$props['Source'] = (object)['URN' => $props['URN']]; // 'http://email.exacttarget.com/images/' . $this->ftp_image_name];
 			unset($props['URN']);
@@ -83,9 +80,20 @@ class Portfolio extends ExactTargetLaravelApi {
 			Log::critical('missing URN - the location where the image is being hosted.');
 			return false;
 		}
-
 		try {
+			ini_set("soap.wsdl_cache_enabled", "0");
 			$response = new ET_Post($this->fuel, $this->objType, $props);
+			if ($response->Status == true && count($response->results) && $response->results[0]->StatusCode == "OK") {
+				$acm                 = new AriadMediaMap();
+				$acm->src_client_id  = $src['business_unit'];
+				$acm->customer_key   = $response->results[0]->Object->CustomerKey;
+				$acm->src_id         = 0;
+				$acm->src_object_id  = $src['object_id'];
+				$acm->dest_client_id = $response->results[0]->Object->Client->ID;
+				$acm->dest_id        = $response->results[0]->NewID;
+				$acm->dest_object_id = $response->results[0]->NewObjectID;
+				$acm->save();
+			}
 		}
 		catch (\Exception $exception) {
 			Log::critical('Failed Importing Portfolio image to Portfolio', [$exception]);

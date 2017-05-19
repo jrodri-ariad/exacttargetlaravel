@@ -311,7 +311,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		// $this->fuelFolder->props = ['Name','CustomerKey', 'ContentType'];
 		if ($name) {
 			$this->fuelFolder->filter = [
-				'Property'       => 'ContentType',
+				'Property'       => 'CustomerKey',
 				'SimpleOperator' => 'equals',
 				'Value'          => $name
 			];
@@ -1170,9 +1170,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		];
 		$email->props = array_merge($email->props, $props);
 		$getRes = $email->post();
-		if ($getRes->status != true) {
-			Log::error('Error creating ET email(createEmail). Message: ', [$getRes]);
-		}
+//		if ($getRes->status != true) {
+//			// Log::error('Error creating ET email(createEmail). Message: ', [$getRes]);
+//		}
 		return $getRes;
 	}
 
@@ -1217,6 +1217,12 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 	}
 
+	/**
+	 * get Template object from SFMC
+	 * @param null $name optional CustomerKey
+	 * @param bool $BusinessUnit Client_ID
+	 * @return \FuelSdkPhp\ET_Get
+	 */
 	public function retrieveTemplates($name = null, $BusinessUnit = false) {
 		$email           = new ET_Template();
 		$email->authStub = $this->fuel;
@@ -1236,7 +1242,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 		else {
 			Log::error('Error retrieving ET_Template. Message: ' . $getRes->message);
-			return false;
+			return $getRes;
 		}
 	}
 
@@ -1321,11 +1327,14 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 	}
 
-	public function retrieveContentAreas($BusinessUnit = false, $name = false) {
+	public function retrieveContentAreas($BusinessUnit = false, $search = false) {
 		$obj           = new ET_ContentArea();
 		$obj->authStub = $this->fuel;
 		if ($BusinessUnit) {
 			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+		}
+		if (is_array($search)) {
+			$obj->filter = $search;
 		}
 		return $obj->get();
 	}
