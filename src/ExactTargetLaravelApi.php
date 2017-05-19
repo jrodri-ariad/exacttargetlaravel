@@ -1043,6 +1043,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		return $all_imports;
 	}
 
+	/**
+	 * Create a new Import Activity
+	 */
 	public function createImport($BusinessUnit, $props) {
 		$obj = new ET_Import();
 		$obj->authStub = $this->fuel;
