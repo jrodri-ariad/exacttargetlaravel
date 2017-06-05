@@ -334,11 +334,15 @@ class ET_Client extends \SoapClient {
 		return $postResponse;
 	}
 
-	function SendTriggeredSends($arrayOfTriggeredRecords) {
+	/**
+	 * @param $arrayOfTriggeredRecords ['ObjectID' => null, 'CustomerKey' => $external_key];
+	 * @return \FuelSdkPhp\ET_Post
+	 */
+	function SendTriggeredSends($arrayOfTriggeredRecords, $subscribers) {
 		$sendTS           = new ET_TriggeredSend();
 		$sendTS->authStub = $this;
 		$sendTS->props    = $arrayOfTriggeredRecords;
-		$sendResponse     = $sendTS->send();
+		$sendResponse     = $sendTS->send($subscribers);
 		return $sendResponse;
 	}
 
@@ -1525,7 +1529,7 @@ class ET_DataExtension_Row extends ET_CUDWithUpsertSupport {
 					$this->CustomerKey = $nameLookupGet->results[0]->CustomerKey;
 				}
 				else {
-					throw new \Exception('Unable to process request due to unable to find DataExtension based on Name');
+					throw new \Exception('Unable to process request due to unable to find DataExtension based on Name "' . $this->Name . '"');
 				}
 			}
 		}
@@ -1792,7 +1796,16 @@ class ET_TriggeredSend extends ET_CUDSupport {
 		$this->folderMediaType = "triggered_send";
 	}
 
-	public function Send() {
+	/**
+	 * Trigger the send.
+	 * @param array $subscribers [EmailAddress,SubscriberKey,[dataextensionfield01, ..., dataextensionfieldNN]]
+	 * $this->props = [CustomerKey = Triggered Send Definition - External key];
+	 * @return \FuelSdkPhp\ET_Post
+	 */
+	public function Send($subscribers = null) {
+		if ($subscribers) {
+			$this->subscribers = $subscribers;
+		}
 		$tscall   = ["TriggeredSendDefinition" => $this->props, "Subscribers" => $this->subscribers];
 		$response = new ET_Post($this->authStub, "TriggeredSend", $tscall);
 		return $response;

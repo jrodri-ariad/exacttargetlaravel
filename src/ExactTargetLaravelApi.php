@@ -1689,8 +1689,19 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 	}
 
+	public function sendTriggeredSend($customer_key, $subscribers) {
+
+		$triggered_send_definition = ['CustomerKey' => $customer_key];
+		$ts           = new ET_TriggeredSend();
+		$ts->authStub = $this->fuel;
+		$ts->props    = ['CustomerKey' => $customer_key];
+
+		$sendResponse     = $ts->Send($subscribers);
+		return $sendResponse;
+	}
+
 	/**
-	 * Sends a Triggered Send to defined Email Address
+	 * Create a new Triggered Send then Send to defined Email Address
 	 * @param $email Email Address to send to
 	 * @param $emailid Email ID (content of the email to be sent)
 	 * @param $sendClassification the Send Classification usually Default Commercial
@@ -1700,7 +1711,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 */
 	public function sendTriggered($email, $emailid, $sendClassification = "Default Commercial", $properties = []) {
 		$name         = uniqid();
-		$ts           = new \ET_TriggeredSend();
+		$ts           = new ET_TriggeredSend();
 		$ts->authStub = $this->fuel;
 		$ts->props = [
 			'CustomerKey'         => $name,
@@ -1726,7 +1737,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 		$getRes = $ts->post();
 		if ($getRes->status == true) {
-			$patchTrig           = new \ET_TriggeredSend();
+			$patchTrig           = new ET_TriggeredSend();
 			$patchTrig->authStub = $this->fuel;
 			$patchTrig->props    = [
 				'CustomerKey'         => $name,
