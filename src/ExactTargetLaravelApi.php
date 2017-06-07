@@ -563,12 +563,13 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		if (count($data) > 1) {
 			$request['body'] = json_encode($data);
 			$upsertUri       = 'https://www.exacttargetapis.com/hub/v1/dataevents/key:' . $customer_key . '/rowset';
+			$http_type = 'postAsync';
 		}
 		else {
-			Log::debug('Data', [$data]);
 			$keys            = $data[0]->keys;
 			$request['body'] = json_encode(['values' => $data[0]->values]);
 			$upsertUri       = 'https://www.exacttargetapis.com/hub/v1/dataevents/key:' . $customer_key . '/rows/' . key($keys) . ':' . current($keys);
+			$http_type = 'putAsync';
 		}
 		$request['headers'] = [
 			'Content-Type'  => 'application/json',
@@ -578,7 +579,9 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		//$request['body'] = $data;
 		try {
 			//post upsert
-			$promise = $this->client->postAsync($upsertUri, $request);
+			//dd($upsertUri, $request);
+			$promise = $this->client->{$http_type}($upsertUri, $request);
+
 			$promise->then(
 			//chain logic to the response (can fire from other classes or set booleans)
 				function (ResponseInterface $res) {
@@ -598,7 +601,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		}
 		return compact('promise');
 	}
-
+	
 	/**
 	 * Create a Data extension by passing an array of DE Name keys => Column props values.
 	 *
