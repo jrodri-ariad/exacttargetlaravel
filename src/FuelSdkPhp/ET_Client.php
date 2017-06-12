@@ -1946,6 +1946,23 @@ class ET_DataExtractActivity extends ET_CUDSupport {
 	function __construct() {
 		$this->obj = "DataExtractActivity";
 	}
+
+    function send() {
+        $originalProps = $this->props;
+        $response      = new ET_Perform($this->authStub, $this->obj, 'start', $this->props);
+        if ($response->status) {
+            $this->lastTaskID = $response->results[0]->Task->ID;
+        }
+        $this->props = $originalProps;
+        return $response;
+    }
+}
+
+class ET_ExtractResult extends ET_GetSupport {
+	function __construct()
+	{
+		$this->obj = "AsyncActivityStatus";
+	}
 }
 
 class ET_Template extends ET_CUDSupport {

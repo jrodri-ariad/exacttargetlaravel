@@ -9,6 +9,7 @@ use FuelSdkPhp\ET_DataExtractActivity;
 use FuelSdkPhp\ET_ExtractDefinition;
 use FuelSdkPhp\ET_ExtractDescription;
 use FuelSdkPhp\ET_FileTransferActivity;
+use FuelSdkPhp\ET_ExtractResult;
 use FuelSdkPhp\ET_FilterDefinition;
 use FuelSdkPhp\ET_FTPLocation;
 use FuelSdkPhp\ET_Get;
@@ -995,19 +996,60 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 	 * @param bool $name
 	 * @return array
 	 */
-	public function getDataExtractActivity($BusinessUnit = false, $name = false) {
-		$obj = new ET_DataExtractActivity();
-		// $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
-		$obj->authStub = $this->fuel;
-		if ($BusinessUnit) {
-			$obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
-		}
-		$r = $obj->get();
-		if ($r->status == true) {
-			return $r;
-		}
-		return ['failed' => $r];
-	}
+    public function getDataExtractActivity($BusinessUnit = false, $name = false) {
+        $obj = new ET_ExtractDefinition();
+        // $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
+        $obj->authStub = $this->fuel;
+        if ($BusinessUnit) {
+            $obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+        }
+        $r = $obj->send();
+        if ($r->status == true) {
+            return $r;
+        }
+        return ['failed' => $r];
+    }
+
+    /**
+     * Runs a data extract activity. Identified by external key
+     * @param bool $BusinessUnit
+     * @param $extract_external_id
+     * @return array|\FuelSdkPhp\ET_Perform
+     */
+    public function startDataExtractActivity($BusinessUnit = false, $extract_external_id) {
+        $obj = new ET_DataExtractActivity();
+        // $obj->props = array('Client.ID','Categoryid','CustomerKey','DataFilter','Description','Name');
+        $obj->authStub = $this->fuel;
+        if ($BusinessUnit) {
+            $obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+        }
+
+        $obj->props['ObjectID'] = $extract_external_id;
+        //$obj->props['ObjectID'] = null;
+        //$obj->props['ModifiedDate'] = null;
+
+        $r = $obj->send();
+
+        if ($r->status == true) {
+            return $r;
+        }
+        return ['failed' => $r];
+    }
+
+    public function checkStatusDataExtractActivity($BusinessUnit, $id)
+    {
+        $obj = new ET_ExtractResult();
+
+        $obj->authStub = $this->fuel;
+        if ($BusinessUnit) {
+            $obj->authStub->BusinessUnit = (object)['ID' => $BusinessUnit];
+        }
+        $obj->props = array("ActionType", "Type", "Status", "CustomerKey", "ErrorMsg", "CompletedDate", "StatusMessage");
+
+        $obj->filter = array('Property' => 'TaskID','SimpleOperator' => 'equals','Value' => $id);
+
+        return $obj->get();
+    }
 
 	/**
 	 * ET_Client.ET_Import follows a different pattern than the API Objects
