@@ -405,7 +405,7 @@ class ExactTargetLaravelApi implements ExactTargetLaravelInterface {
 		$this->fuelDe->authStub = $this->fuel;
 		$this->fuelDe->Name = $deName;
 		//build array of Column names from DE
-		foreach ($deColumns as $k => $v) {
+		foreach ($deColumns->results as $k => $v) {
 			$this->fuelDe->props[] = $v->Name;
 		}
 		//if the function is called with these values -- filter by them
